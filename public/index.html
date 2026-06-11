@@ -1,0 +1,2274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Express Lock&Key CRM</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#1e6fff;--primary-dark:#1558d6;--primary-light:#eff6ff;
+  --success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--info:#0891b2;
+  --bg:#f0f4f8;--surface:#fff;--border:#e2e8f0;--text:#1a202c;--text2:#4a5568;--text3:#718096;
+  --radius:8px;--radius-lg:12px;--sidebar:220px;--topbar:52px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+
+/* LOGIN */
+.login-wrap{display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg,#0f1923,#1a2940)}
+.login-card{background:#fff;border-radius:16px;padding:40px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.login-logo{font-size:22px;font-weight:800;text-align:center;margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--text3);text-align:center;margin-bottom:24px}
+.login-err{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:var(--radius);padding:9px 12px;font-size:12px;margin-bottom:12px;display:none}
+
+/* LAYOUT */
+.sidebar{position:fixed;left:0;top:0;width:var(--sidebar);height:100vh;background:linear-gradient(180deg,#0f1923,#1a2940);color:#fff;overflow-y:auto;z-index:100;display:flex;flex-direction:column}
+.logo-area{padding:16px;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0}
+.logo-text{font-size:16px;font-weight:800;letter-spacing:-0.3px}
+.nav-section{padding:10px 16px 3px;font-size:10px;font-weight:600;color:rgba(255,255,255,0.25);letter-spacing:1px;text-transform:uppercase;margin-top:8px}
+.nav-item{padding:9px 16px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:9px;color:rgba(255,255,255,0.7);border-radius:6px;margin:1px 8px;transition:all 0.15s;position:relative}
+.nav-item:hover{background:rgba(255,255,255,0.08);color:#fff}
+.nav-item.active{background:var(--primary);color:#fff}
+.nav-item i{font-size:15px;width:18px}
+.nav-badge{background:#ef4444;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:auto;display:none}
+.topbar{position:fixed;top:0;left:var(--sidebar);right:0;height:var(--topbar);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;z-index:99}
+.topbar-title{font-size:14px;font-weight:600}
+.topbar-actions{margin-left:auto;display:flex;align-items:center;gap:7px}
+.main{margin-left:var(--sidebar);margin-top:var(--topbar);height:calc(100vh - var(--topbar));overflow-y:auto;padding:16px}
+.page{display:none}.page.active{display:block}
+
+/* CARDS */
+.card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);margin-bottom:12px}
+.card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.card-title{font-size:13px;font-weight:600}
+.card-header-actions{margin-left:auto}
+.card-body{padding:0}
+
+/* STATS */
+.stat-card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.si-blue{background:#dbeafe;color:#2563eb}
+.si-green{background:#dcfce7;color:#16a34a}
+.si-amber{background:#fef3c7;color:#d97706}
+.si-red{background:#fee2e2;color:#dc2626}
+.si-purple{background:#ede9fe;color:#7c3aed}
+.stat-label{font-size:11px;color:var(--text3);margin-bottom:2px}
+.stat-value{font-size:22px;font-weight:700}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:12px;font-weight:500;transition:all 0.15s;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark);border-color:var(--primary-dark)}
+.btn-success{background:var(--success);border-color:var(--success);color:#fff}
+.btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn-sm{padding:4px 9px;font-size:11px}
+.btn-icon{padding:5px 7px}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-radius:50%;border-top-color:#fff;animation:spin 0.7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TABLE */
+.jt{width:100%;border-collapse:collapse}
+.jt th{padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);background:#fafbfc}
+.jt td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)}
+.jt tr:last-child td{border-bottom:none}
+.jt tr:hover td{background:#f9fafb}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.badge-new{background:#dbeafe;color:#1d4ed8}
+.badge-pending{background:#fef3c7;color:#92400e}
+.badge-progress{background:#ede9fe;color:#5b21b6}
+.badge-done{background:#dcfce7;color:#166534}
+.badge-paid{background:#dcfce7;color:#166534}
+.badge-unpaid{background:#fee2e2;color:#991b1b}
+.badge-cancelled{background:#f3f4f6;color:#374151}
+
+/* FORMS */
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;display:block}
+.form-input{width:100%;padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text);background:var(--surface);outline:none;transition:border 0.15s}
+.form-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(30,111,255,0.08)}
+select.form-input{cursor:pointer}
+textarea.form-input{resize:vertical;min-height:70px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:none;align-items:center;justify-content:center}
+.modal{background:var(--surface);border-radius:var(--radius-lg);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:14px;font-weight:600}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+/* TOGGLE */
+.toggle{width:36px;height:20px;background:#d1d5db;border-radius:10px;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.toggle.on{background:var(--primary)}
+.toggle.on::after{transform:translateX(16px)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:var(--radius);font-size:12px;font-weight:500;z-index:9999;animation:slideIn 0.3s ease;max-width:320px}
+.toast.success{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+.toast.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.toast.info{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* SMS */
+.sms-panel{display:grid;grid-template-columns:260px 1fr;height:calc(100vh - 110px)}
+.sms-list{border-right:1px solid var(--border);overflow-y:auto}
+.sms-contact{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:9px}
+.sms-contact:hover{background:var(--bg)}
+.sms-contact.active{background:var(--primary-light)}
+.sms-chat{display:flex;flex-direction:column;height:100%}
+.sms-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:#f7f9fb}
+.msg-bubble{max-width:70%;padding:8px 12px;border-radius:12px;font-size:12px;line-height:1.5;word-break:break-word}
+.msg-out{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+.msg-in{background:#fff;border:1px solid var(--border);color:var(--text);align-self:flex-start;border-bottom-left-radius:3px}
+.msg-time{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* KANBAN */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;height:calc(100vh - 140px)}
+.kanban-col{background:var(--bg);border-radius:var(--radius-lg);padding:10px;overflow-y:auto}
+.kanban-col-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:8px;padding:4px 8px}
+.job-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:all 0.15s}
+.job-card:hover{box-shadow:0 2px 8px rgba(0,0,0,0.08);transform:translateY(-1px)}
+
+/* SETTINGS */
+.settings-layout{display:grid;grid-template-columns:200px 1fr;gap:16px}
+.settings-nav{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);padding:8px;height:fit-content}
+.settings-nav-item{padding:8px 12px;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);display:flex;align-items:center;gap:7px;margin-bottom:2px}
+.settings-nav-item:hover{background:var(--bg)}
+.settings-nav-item.active{background:var(--primary-light);color:var(--primary)}
+.settings-card{background:var(--bg);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-row-label{font-size:12px;font-weight:500}
+.settings-row-desc{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* TABS */
+.tab-bar{display:flex;border-bottom:2px solid var(--border);margin-bottom:14px}
+.tab{padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+
+/* NOTIF DRAWER */
+.notif-drawer{position:fixed;top:var(--topbar);right:0;width:320px;height:calc(100vh - var(--topbar));background:var(--surface);border-left:1px solid var(--border);z-index:200;transform:translateX(100%);transition:transform 0.2s;overflow-y:auto}
+.notif-drawer.open{transform:translateX(0)}
+
+/* TICKET */
+.priority-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state i{font-size:40px;display:block;margin-bottom:12px;opacity:0.4}
+
+/* AI */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.divider{display:flex;align-items:center;gap:10px;margin:12px 0;color:var(--text3);font-size:11px}
+.divider::before,.divider::after{content:'';flex:1;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="login-page" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">Express Lock<span style="color:var(--primary)">&amp;Key</span> CRM</div>
+    <div class="login-sub">Sign in to your workspace</div>
+    <div class="login-err" id="login-err"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="login-email" placeholder="admin@fieldpro.com" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()" id="login-btn">
+      <i class="ti ti-login"></i> Sign In
+    </button>
+    <div style="margin-top:14px;font-size:11px;color:var(--text3);text-align:center">Express Lock&amp;Key — Field Service CRM</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;width:100%;height:100vh;flex-direction:row">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo-area">
+      <div class="logo-text" id="logo-text">Express Lock<span style="color:var(--primary)">&amp;Key</span></div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:2px">Field Service CRM</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding-bottom:16px">
+      <div class="nav-section">Main</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><i class="ti ti-dashboard"></i>Dashboard</div>
+      <div class="nav-item" onclick="showPage('jobs',this)"><i class="ti ti-briefcase"></i>Jobs<span class="nav-badge" id="badge-jobs">0</span></div>
+      <div class="nav-item" onclick="showPage('daily',this)"><i class="ti ti-calendar-stats"></i>Daily Board</div>
+      <div class="nav-item" onclick="showPage('dispatch',this)"><i class="ti ti-layout-kanban"></i>Dispatch Board</div>
+      <div class="nav-section">Team</div>
+      <div class="nav-item" onclick="showPage('techs',this)"><i class="ti ti-users"></i>Technicians</div>
+      <div class="nav-item" onclick="showPage('customers',this)"><i class="ti ti-address-book"></i>Customers</div>
+      <div class="nav-section">Tools</div>
+      <div class="nav-item" onclick="showPage('sms',this)"><i class="ti ti-message"></i>SMS / Calls<span class="nav-badge" id="badge-sms">0</span></div>
+      <div class="nav-item" onclick="showPage('booking',this)"><i class="ti ti-calendar-plus"></i>Booking Requests<span class="nav-badge" id="badge-booking">0</span></div>
+      <div class="nav-item" onclick="showPage('finance',this)"><i class="ti ti-cash"></i>Finance</div>
+      <div class="nav-item" onclick="showPage('reports',this)"><i class="ti ti-chart-bar"></i>Reports</div>
+      <div class="nav-section">System</div>
+      <div class="nav-item" onclick="showPage('workflows',this)"><i class="ti ti-topology-star-3"></i>Workflows</div>
+      <div class="nav-item" onclick="showPage('ai',this)"><i class="ti ti-brain"></i>AI Assistant</div>
+      <div class="nav-item" onclick="showPage('settings',this)"><i class="ti ti-settings"></i>Admin Settings</div>
+    </div>
+    <div style="padding:12px;border-top:1px solid rgba(255,255,255,0.08)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="user-avatar" style="width:30px;height:30px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">A</div>
+        <div style="flex:1;min-width:0">
+          <div id="user-name" style="font-size:11px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Admin</div>
+          <div id="user-role" style="font-size:10px;color:rgba(255,255,255,0.4)">Admin / Owner</div>
+        </div>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.15);color:#fff;padding:4px 7px" onclick="logout()"><i class="ti ti-logout" style="font-size:13px"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <span class="topbar-title" id="topbar-title">Dashboard</span>
+    <div style="font-size:11px;color:var(--text3)" id="mask-number"></div>
+    <div class="topbar-actions">
+      <button class="btn btn-sm btn-primary" onclick="openNewJobModal()"><i class="ti ti-plus"></i> New Job</button>
+      <button class="btn btn-sm" onclick="toggleNotifDrawer()" style="position:relative">
+        <i class="ti ti-bell"></i>
+        <span id="badge-notif" style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;display:none;align-items:center;justify-content:center;font-weight:700"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION DRAWER -->
+  <div class="notif-drawer" id="notif-drawer">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:13px;font-weight:600">Notifications</span>
+      <button class="btn btn-sm" onclick="markAllRead()">Mark all read</button>
+    </div>
+    <div id="notif-list" style="padding:8px"></div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModalOnBg(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title"></span>
+        <button class="btn btn-sm btn-icon" onclick="closeModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- PAGES CONTAINER -->
+  <div class="main" id="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
+        <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-briefcase"></i></div><div><div class="stat-label">Today's Jobs</div><div class="stat-value" id="d-today">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-check"></i></div><div><div class="stat-label">Done This Week</div><div class="stat-value" id="d-done">—</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-red"><i class="ti ti-x"></i></div><div><div class="stat-label">Cancelled</div><div class="stat-value" id="d-cancelled">—</div></div></div>
+        <div class="stat-card" id="d-rev-card"><div class="stat-icon si-amber"><i class="ti ti-cash"></i></div><div><div class="stat-label">Revenue (Week)</div><div class="stat-value" id="d-rev">—</div></div></div>
+        <div class="stat-card" id="d-out-card"><div class="stat-icon si-purple"><i class="ti ti-clock"></i></div><div><div class="stat-label">Outstanding</div><div class="stat-value" id="d-out">—</div></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+        <div class="card"><div class="card-header"><i class="ti ti-chart-bar" style="color:var(--primary)"></i><span class="card-title">7-Day Trend</span></div><div style="padding:14px"><canvas id="chart-trend" height="140"></canvas></div></div>
+        <div class="card"><div class="card-header"><i class="ti ti-chart-pie" style="color:var(--primary)"></i><span class="card-title">Jobs by Status</span></div><div style="padding:14px;display:flex;align-items:center;gap:12px"><canvas id="chart-status" width="110" height="110" style="flex-shrink:0"></canvas><div id="chart-status-legend" style="font-size:11px;flex:1"></div></div></div>
+        <div class="card"><div class="card-header"><i class="ti ti-chart-bar" style="color:var(--primary)"></i><span class="card-title">Top Job Types</span></div><div style="padding:14px"><canvas id="chart-types" height="140"></canvas></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:12px">
+        <div class="card"><div class="card-header"><i class="ti ti-users" style="color:var(--primary)"></i><span class="card-title">Tech Performance</span></div><div style="padding:14px" id="dash-tech-perf"></div></div>
+        <div class="card"><div class="card-header"><i class="ti ti-list" style="color:var(--primary)"></i><span class="card-title">Today's Jobs</span><div class="card-header-actions"><button class="btn btn-sm" onclick="showPage('jobs',null)">All</button></div></div><div class="card-body"><table class="jt"><thead><tr><th>ID</th><th>Customer</th><th>Status</th></tr></thead><tbody id="dash-jobs-tbody"></tbody></table></div></div>
+      </div>
+    </div>
+
+    <!-- JOBS PAGE -->
+    <div class="page" id="page-jobs">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <input class="form-input" id="jobs-search" placeholder="Search jobs..." style="width:220px" oninput="renderJobs()"/>
+        <select class="form-input" id="jobs-status-filter" style="width:140px" onchange="renderJobs()">
+          <option value="">All Statuses</option>
+          <option value="new">New</option>
+          <option value="assigned">Assigned</option>
+          <option value="in-progress">In Progress</option>
+          <option value="done">Done</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select class="form-input" id="jobs-tech-filter" style="width:140px" onchange="renderJobs()">
+          <option value="">All Techs</option>
+        </select>
+        <div style="margin-left:auto">
+          <button class="btn btn-primary" onclick="openNewJobModal()"><i class="ti ti-plus"></i> New Job</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <table class="jt" style="width:100%">
+            <thead><tr><th>ID</th><th>Title</th><th>Customer</th><th>Tech</th><th>Priority</th><th>Status</th><th>Date</th><th>Invoice</th><th></th></tr></thead>
+            <tbody id="jobs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAILY BOARD -->
+    <div class="page" id="page-daily">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="changeBoardDate(-1)"><i class="ti ti-chevron-left"></i></button>
+        <input type="date" class="form-input" id="board-date" style="width:150px" onchange="loadDailyBoard()"/>
+        <button class="btn btn-sm" onclick="changeBoardDate(1)"><i class="ti ti-chevron-right"></i></button>
+        <button class="btn btn-sm btn-primary" onclick="setBoardToday()">Today</button>
+        <select class="form-input" id="board-status-filter" style="width:140px" onchange="loadDailyBoard()"><option value="">All Statuses</option><option value="new">New</option><option value="assigned">Assigned</option><option value="in-progress">In Progress</option><option value="done">Done</option><option value="cancelled">Cancelled</option></select>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap" id="board-summary-pills"></div>
+      <div class="card"><div class="card-body"><table class="jt" style="width:100%"><thead><tr><th>ID</th><th>Customer</th><th>Service</th><th>Address</th><th>Tech</th><th>Time</th><th>Status</th><th>Invoice</th><th></th></tr></thead><tbody id="board-tbody"></tbody></table></div></div>
+    </div>
+
+    <!-- DISPATCH -->
+    <div class="page" id="page-dispatch">
+      <div class="kanban" id="kanban-board"></div>
+    </div>
+
+    <!-- TECHS -->
+    <div class="page" id="page-techs">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+        <button class="btn btn-primary" onclick="openAddTechModal()"><i class="ti ti-plus"></i> Add Tech</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px" id="techs-grid"></div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="page" id="page-customers">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input class="form-input" id="cust-search" placeholder="Search customers..." style="width:240px" oninput="renderCustomers()"/>
+        <button class="btn btn-primary" onclick="openAddCustomerModal()"><i class="ti ti-plus"></i> Add Customer</button>
+      </div>
+      <div class="card"><div class="card-body"><table class="jt" style="width:100%"><thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>Jobs</th><th></th></tr></thead><tbody id="customers-tbody"></tbody></table></div></div>
+    </div>
+
+    <!-- SMS / CALLS -->
+    <div class="page" id="page-sms">
+      <div class="card" style="overflow:hidden">
+        <div class="sms-panel">
+          <div class="sms-list">
+            <div style="padding:8px 10px;border-bottom:1px solid var(--border)">
+              <div style="position:relative;margin-bottom:6px">
+                <input type="text" placeholder="Search contacts..." oninput="filterSMSContacts(this.value)" id="sms-search" style="width:100%;padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius);font-size:11px;outline:none"/>
+                <i class="ti ti-search" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text3)"></i>
+              </div>
+              <div style="position:relative">
+                <input type="text" placeholder="Search messages..." oninput="searchMessages(this.value)" id="msg-search" style="width:100%;padding:6px 10px 6px 28px;border:1px solid var(--border);border-radius:var(--radius);font-size:11px;outline:none;background:#fffbeb"/>
+                <i class="ti ti-message-search" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--warning)"></i>
+              </div>
+            </div>
+            <div id="sms-search-results" style="display:none;border-bottom:1px solid var(--border);background:#fffbeb;max-height:200px;overflow-y:auto"></div>
+            <div id="sms-contact-list"></div>
+          </div>
+          <div id="sms-chat-area" style="display:flex;flex-direction:column;background:#f7f9fb">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:12px">
+              <div style="text-align:center"><i class="ti ti-message" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3"></i>Select a contact to start messaging</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOOKING REQUESTS -->
+    <div class="page" id="page-booking">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--text3)">Manage customer booking requests and scheduled appointments</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="copyBookingLink()"><i class="ti ti-link"></i> Copy Link</button>
+          <button class="btn btn-sm btn-primary" onclick="openBookingLinkModal()"><i class="ti ti-external-link"></i> Preview</button>
+        </div>
+      </div>
+      <div style="background:linear-gradient(135deg,#0f1923,#1a2940);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:14px;display:flex;align-items:center;gap:14px;color:#fff">
+        <div style="width:38px;height:38px;background:rgba(30,111,255,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-calendar" style="font-size:17px"></i></div>
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:2px">Customer Booking Page</div><div style="font-size:11px;color:#8a9bb0" id="booking-link-display">Loading...</div></div>
+        <button class="btn btn-sm" style="margin-left:auto;background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.2);color:#fff" onclick="copyBookingLink()"><i class="ti ti-copy"></i></button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
+        <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-clock"></i></div><div><div class="stat-label">Pending</div><div class="stat-value" id="bk-pending">0</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-amber"><i class="ti ti-calendar"></i></div><div><div class="stat-label">Today</div><div class="stat-value" id="bk-today">0</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-check"></i></div><div><div class="stat-label">Confirmed</div><div class="stat-value" id="bk-confirmed">0</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-purple"><i class="ti ti-calendar-week"></i></div><div><div class="stat-label">This Week</div><div class="stat-value" id="bk-week">0</div></div></div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab active" onclick="switchBookingTab('requests',this)">Service Requests</div>
+        <div class="tab" onclick="switchBookingTab('scheduled',this)">Scheduled</div>
+      </div>
+      <div id="bk-tab-requests"><div class="card"><div class="card-header"><i class="ti ti-inbox" style="color:var(--primary)"></i><span class="card-title">Incoming Requests</span><div class="card-header-actions"><button class="btn btn-sm" onclick="renderBookingPage()"><i class="ti ti-refresh"></i></button></div></div><div class="card-body"><table class="jt" style="width:100%"><thead><tr><th>Time</th><th>Customer</th><th>Phone</th><th>Service</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody id="bk-requests-tbody"></tbody></table></div></div></div>
+      <div id="bk-tab-scheduled" style="display:none"><div class="card"><div class="card-header"><i class="ti ti-calendar-event" style="color:var(--primary)"></i><span class="card-title">Scheduled Appointments</span></div><div class="card-body"><table class="jt" style="width:100%"><thead><tr><th>Date & Time</th><th>Customer</th><th>Phone</th><th>Service</th><th>Job ID</th><th>Tech</th><th>Status</th></tr></thead><tbody id="bk-scheduled-tbody"></tbody></table></div></div></div>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="page" id="page-finance">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">
+        <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div><div class="stat-label">Collected Today</div><div class="stat-value" id="fin-today">$0</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-calendar-week"></i></div><div><div class="stat-label">This Week</div><div class="stat-value" id="fin-week">$0</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-amber"><i class="ti ti-calendar"></i></div><div><div class="stat-label">This Month</div><div class="stat-value" id="fin-month">$0</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-red"><i class="ti ti-clock"></i></div><div><div class="stat-label">Outstanding</div><div class="stat-value" id="fin-outstanding">$0</div></div></div>
+      </div>
+      <div class="card"><div class="card-header"><i class="ti ti-file-invoice" style="color:var(--primary)"></i><span class="card-title">Invoices</span></div><div class="card-body"><table class="jt" style="width:100%"><thead><tr><th>Invoice #</th><th>Customer</th><th>Tech</th><th>Total</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody id="finance-tbody"></tbody></table></div></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page" id="page-reports">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <select class="form-input" id="report-period" style="width:160px" onchange="renderReports()"><option value="week">This Week</option><option value="month">This Month</option><option value="all">All Time</option></select>
+        <select class="form-input" id="report-tech" style="width:160px" onchange="renderReports()"><option value="">All Techs</option></select>
+        <button class="btn btn-sm" onclick="exportReport()"><i class="ti ti-download"></i> Export</button>
+      </div>
+      <div id="reports-content"></div>
+    </div>
+
+    <!-- WORKFLOWS -->
+    <div class="page" id="page-workflows">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--text3)">Zapier-style automations triggered by events or schedules</div>
+        <button class="btn btn-primary" onclick="openNewWorkflowModal()"><i class="ti ti-plus"></i> New Workflow</button>
+      </div>
+      <div style="background:var(--primary-light);border:1px solid #bfdbfe;border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:14px;font-size:12px;color:#1d4ed8">
+        <strong>How it works:</strong> WHEN (trigger event) + IF (optional condition) → THEN (action). Runs automatically every time the trigger fires.
+      </div>
+      <div id="workflows-list"></div>
+    </div>
+
+    <!-- AI ASSISTANT -->
+    <div class="page" id="page-ai">
+      <div style="display:grid;grid-template-columns:1fr 260px;gap:14px;height:calc(100vh - 110px)">
+        <div class="card" style="display:flex;flex-direction:column;overflow:hidden">
+          <div class="card-header">
+            <div style="width:30px;height:30px;background:linear-gradient(135deg,var(--primary),#7c3aed);border-radius:50%;display:flex;align-items:center;justify-content:center"><i class="ti ti-brain" style="color:#fff;font-size:14px"></i></div>
+            <span class="card-title">AI Assistant</span>
+            <div class="card-header-actions"><button class="btn btn-sm" onclick="clearAIChat()"><i class="ti ti-trash"></i></button></div>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f7f9fb" id="ai-messages">
+            <div style="text-align:center;padding:24px;color:var(--text3)"><div style="width:48px;height:48px;background:linear-gradient(135deg,var(--primary),#7c3aed);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i class="ti ti-brain" style="color:#fff;font-size:22px"></i></div><div style="font-size:13px;font-weight:600;margin-bottom:6px">Express Lock&amp;Key AI</div><div style="font-size:12px">Ask questions or give commands about your CRM data.</div></div>
+          </div>
+          <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:7px">
+            <input class="form-input" id="ai-input" placeholder="Ask me anything or give a task..." style="flex:1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage()}"/>
+            <button class="btn btn-primary btn-icon" onclick="sendAIMessage()" id="ai-send-btn"><i class="ti ti-send"></i></button>
+          </div>
+        </div>
+        <div style="overflow-y:auto">
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-header"><i class="ti ti-sparkles" style="color:var(--primary)"></i><span class="card-title">Quick Questions</span></div>
+            <div style="padding:10px">
+              ${['How many jobs are open?','Revenue this week?','Which tech has most jobs?','All unassigned jobs?','Jobs scheduled tomorrow?','Outstanding invoices total?'].map(p=>`<div style="padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px;cursor:pointer;font-size:11px;color:var(--text2)" onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background=''" onclick="setAIPrompt('${p}')">${p}</div>`).join('')}
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><i class="ti ti-bolt" style="color:var(--warning)"></i><span class="card-title">Task Commands</span></div>
+            <div style="padding:10px">
+              ${['Assign all new jobs to available techs','Send reminder to all techs with jobs today','Add VIP tag to jobs from John Smith','Mark all done jobs from yesterday as paid'].map(p=>`<div style="padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px;cursor:pointer;font-size:11px;color:var(--text2)" onmouseover="this.style.background='#fffbeb'" onmouseout="this.style.background=''" onclick="setAIPrompt('${p}')">${p}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TICKET DETAIL -->
+    <div class="page" id="page-ticket">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <button class="btn btn-sm" onclick="showPage('jobs',null)"><i class="ti ti-arrow-left"></i> Back</button>
+        <span style="font-size:14px;font-weight:600" id="ticket-page-title">Job Detail</span>
+        <div style="margin-left:auto;display:flex;gap:7px">
+          <button class="btn btn-sm" onclick="ticketMaskedCall()"><i class="ti ti-phone"></i> Call</button>
+          <button class="btn btn-sm" onclick="ticketSendSMS()"><i class="ti ti-message"></i> SMS</button>
+          <button class="btn btn-primary btn-sm" onclick="openTicketInvoiceModal()"><i class="ti ti-file-invoice"></i> Invoice</button>
+          <span id="ticket-delete-btn"></span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card"><div class="card-header"><i class="ti ti-file-description" style="color:var(--primary)"></i><span class="card-title">Job Information</span><div class="card-header-actions"><button class="btn btn-sm" onclick="openEditJobModal(currentTicketId)"><i class="ti ti-edit"></i> Edit</button></div></div><div style="padding:16px" id="ticket-info-body"></div></div>
+          <div class="card"><div class="card-header"><i class="ti ti-cash" style="color:var(--primary)"></i><span class="card-title">Finance</span></div><div style="padding:16px" id="ticket-finance-body"></div></div>
+          <div class="card"><div class="card-header"><i class="ti ti-phone-call" style="color:var(--primary)"></i><span class="card-title">Call Recordings</span></div><div style="padding:16px" id="ticket-recordings-body"><div style="font-size:12px;color:var(--text3)">No recordings yet</div></div></div>
+          <div class="card"><div class="card-header"><i class="ti ti-history" style="color:var(--primary)"></i><span class="card-title">Change History</span></div><div style="padding:16px;max-height:220px;overflow-y:auto" id="ticket-history-body"><div style="font-size:12px;color:var(--text3)">No history yet</div></div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card"><div class="card-header"><i class="ti ti-flag" style="color:var(--primary)"></i><span class="card-title">Status</span></div><div style="padding:14px" id="ticket-status-body"></div></div>
+          <div class="card"><div class="card-header"><i class="ti ti-tag" style="color:var(--primary)"></i><span class="card-title">Tags</span></div><div style="padding:14px" id="ticket-tags-body"></div></div>
+          <div class="card"><div class="card-header"><i class="ti ti-user" style="color:var(--primary)"></i><span class="card-title">Technician</span></div><div style="padding:14px" id="ticket-tech-body"></div></div>
+          <div class="card"><div class="card-header"><i class="ti ti-notes" style="color:var(--primary)"></i><span class="card-title">Notes</span></div><div style="padding:14px" id="ticket-notes-body"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="settings-layout">
+        <div class="settings-nav">
+          <div class="settings-nav-item active" onclick="switchSettingsTab('business',this)"><i class="ti ti-building" style="font-size:14px"></i>Business</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('users',this)"><i class="ti ti-users" style="font-size:14px"></i>Users</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('finance',this)"><i class="ti ti-cash" style="font-size:14px"></i>Finance</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('notifications',this)"><i class="ti ti-bell" style="font-size:14px"></i>Notifications</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('statuses',this)"><i class="ti ti-flag" style="font-size:14px"></i>Job Statuses</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('google',this)"><i class="ti ti-brand-google" style="font-size:14px"></i>Google</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('booking_settings',this)"><i class="ti ti-calendar-plus" style="font-size:14px"></i>Booking</div>
+          <div class="settings-nav-item" onclick="switchSettingsTab('password',this)"><i class="ti ti-lock" style="font-size:14px"></i>Password</div>
+        </div>
+        <div id="settings-content"></div>
+      </div>
+    </div>
+
+  </div><!-- end main -->
+</div><!-- end app -->
+
+<script>
+'use strict';
+const API = '';
+let token = localStorage.getItem('fp_token');
+let currentUser = JSON.parse(localStorage.getItem('fp_user') || 'null');
+let appData = { jobs:[], customers:[], techs:[], allUsers:[], invoices:[], messages:[], formFields:[], jobFields:[], settings:{}, notifications:[], tags:[], bookings:[], automations:[], workflows:[], statusLabels:['new','assigned','in-progress','done','cancelled'] };
+let currentPage = 'dashboard';
+let currentSmsContact = null;
+let smsPollingInterval = null;
+let notifPollingInterval = null;
+let allSmsContacts = [];
+let allMessagesCache = [];
+let currentTicketId = null;
+let aiTyping = false;
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function fmt(n) {
+  return '$' + (n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const config = { method: opts.method || 'GET', headers };
+  if (opts.body) config.body = JSON.stringify(opts.body);
+  return fetch(API + path, config).then(async r => {
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || d.message || ('Error ' + r.status));
+    return d;
+  });
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || 'info');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+function openModal(title, body, buttons) {
+  $('modal-title').textContent = title;
+  $('modal-body').innerHTML = body;
+  $('modal-footer').innerHTML = (buttons || []).map(b =>
+    `<button class="btn ${b.primary ? 'btn-primary' : ''}" onclick="${b.fn}">${b.label}</button>`
+  ).join('');
+  $('modal-overlay').style.display = 'flex';
+}
+
+function closeModal() { $('modal-overlay').style.display = 'none'; }
+function closeModalOnBg(e) { if (e.target === $('modal-overlay')) closeModal(); }
+
+function statusBadge(s) {
+  const m = { new:'badge-new', assigned:'badge-pending', 'in-progress':'badge-progress', done:'badge-done', cancelled:'badge-cancelled' };
+  return `<span class="badge ${m[s] || 'badge-new'}">${s || 'new'}</span>`;
+}
+
+function pdot(p) {
+  const c = { low:'#22c55e', med:'#f59e0b', high:'#ef4444', emergency:'#7c3aed' };
+  return `<span class="priority-dot" style="background:${c[p] || '#94a3b8'}"></span>${p || 'med'}`;
+}
+
+function techAv(name) {
+  if (!name) return '<span style="font-size:11px;color:var(--text3)">—</span>';
+  const t = appData.techs.find(x => x.name === name);
+  const col = t ? t.color : '#1e6fff';
+  const ini = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  return `<div style="display:flex;align-items:center;gap:6px"><div style="width:24px;height:24px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700">${ini}</div><span style="font-size:11px">${name}</span></div>`;
+}
+
+function playNotifSound() {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ac.createOscillator(); const g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type = 'sine'; o.frequency.setValueAtTime(880, ac.currentTime); o.frequency.setValueAtTime(660, ac.currentTime + 0.1);
+    g.gain.setValueAtTime(0.3, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.4);
+    o.start(ac.currentTime); o.stop(ac.currentTime + 0.4);
+  } catch(e) {}
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = $('login-email').value.trim();
+  const pass = $('login-pass').value;
+  const errEl = $('login-err');
+  const btn = $('login-btn');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'Please enter email and password'; errEl.style.display = 'block'; return; }
+  btn.innerHTML = '<div class="spinner"></div> Signing in...';
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || ('Login failed: ' + res.status);
+      errEl.style.display = 'block';
+      btn.innerHTML = '<i class="ti ti-login"></i> Sign In';
+      return;
+    }
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem('fp_token', token);
+    localStorage.setItem('fp_user', JSON.stringify(currentUser));
+    $('login-page').style.display = 'none';
+    const appEl = $('app');
+    appEl.style.display = 'flex';
+    appEl.style.flexDirection = 'row';
+    initApp();
+  } catch(e) {
+    errEl.textContent = 'Network error: ' + e.message;
+    errEl.style.display = 'block';
+    btn.innerHTML = '<i class="ti ti-login"></i> Sign In';
+  }
+}
+
+function logout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('fp_token'); localStorage.removeItem('fp_user');
+  clearInterval(smsPollingInterval); clearInterval(notifPollingInterval);
+  $('app').style.display = 'none';
+  $('login-page').style.display = 'flex';
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function initApp() {
+  if (!token) { $('login-page').style.display = 'flex'; $('app').style.display = 'none'; return; }
+  $('user-name').textContent = currentUser?.name || 'Admin';
+  $('user-role').textContent = currentUser?.role === 'admin' ? 'Admin / Owner' : 'Technician';
+  $('user-avatar').textContent = (currentUser?.name || 'A').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  await loadAllData();
+  renderPage(currentPage);
+  smsPollingInterval = setInterval(pollMessages, 15000);
+  notifPollingInterval = setInterval(pollNotifications, 20000);
+}
+
+async function loadAllData() {
+  try {
+    const [jobs, customers, users, invoices, settings, notifications, tags] = await Promise.all([
+      api('/api/jobs'),
+      api('/api/customers'),
+      api('/api/users'),
+      api('/api/invoices'),
+      api('/api/settings'),
+      api('/api/notifications').catch(() => []),
+      api('/api/tags').catch(() => [])
+    ]);
+    appData.jobs = jobs || [];
+    appData.customers = customers || [];
+    appData.techs = (users || []).filter(u => u.role === 'tech' || u.role === 'admin');
+    appData.allUsers = users || [];
+    appData.invoices = invoices || [];
+    appData.settings = settings || {};
+    appData.notifications = notifications || [];
+    appData.tags = tags || [];
+    await loadStatusLabels();
+    updateBadges();
+    updateNotifBadge();
+    if (settings && settings.business_name) updateLogoText(settings.business_name);
+    if (settings && settings.twilio_number && $('mask-number')) $('mask-number').textContent = settings.twilio_number;
+  } catch(e) { console.error('Load error:', e); }
+}
+
+async function loadStatusLabels() {
+  try {
+    const data = await api('/api/status-labels');
+    appData.statusLabels = data;
+  } catch(e) { appData.statusLabels = ['new','assigned','in-progress','done','cancelled']; }
+}
+
+function updateLogoText(name) {
+  const el = $('logo-text');
+  if (!el) return;
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    const mid = Math.ceil(parts.length / 2);
+    el.innerHTML = parts.slice(0, mid).join(' ') + ' <span style="color:var(--primary)">' + parts.slice(mid).join(' ') + '</span>';
+  } else {
+    el.textContent = name;
+  }
+}
+
+function updateBadges() {
+  const newJobs = appData.jobs.filter(j => j.status === 'new').length;
+  if ($('badge-jobs')) { $('badge-jobs').textContent = newJobs; $('badge-jobs').style.display = newJobs > 0 ? 'inline-block' : 'none'; }
+}
+
+function updateNotifBadge() {
+  const unread = (appData.notifications || []).filter(n => !n.read).length;
+  const badge = $('badge-notif');
+  if (badge) { badge.textContent = unread; badge.style.display = unread > 0 ? 'flex' : 'none'; }
+}
+
+async function pollMessages() {
+  try {
+    const msgs = await api('/api/messages');
+    const unread = msgs.filter(m => !m.read && m.direction === 'in');
+    const prev = parseInt($('badge-sms').textContent || '0');
+    if (unread.length > prev) { playNotifSound(); showToast('New message!', 'success'); }
+    if ($('badge-sms')) { $('badge-sms').textContent = unread.length; $('badge-sms').style.display = unread.length > 0 ? 'inline-block' : 'none'; }
+  } catch(e) {}
+}
+
+async function pollNotifications() {
+  try {
+    appData.notifications = await api('/api/notifications');
+    updateNotifBadge();
+  } catch(e) {}
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+const PAGE_TITLES = { dashboard:'Dashboard', jobs:'Jobs', daily:'Daily Board', dispatch:'Dispatch', techs:'Technicians', customers:'Customers', sms:'SMS & Calls', booking:'Booking Requests', finance:'Finance', reports:'Reports', workflows:'Workflows', ai:'AI Assistant', settings:'Admin Settings', ticket:'Ticket Detail' };
+
+function showPage(name, navEl) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pg = $('page-' + name);
+  if (pg) pg.classList.add('active');
+  currentPage = name;
+  if ($('topbar-title')) $('topbar-title').textContent = PAGE_TITLES[name] || name;
+  renderPage(name);
+}
+
+function renderPage(n) {
+  if (n === 'ticket') return;
+  if (n === 'dashboard') renderDashboard();
+  else if (n === 'jobs') renderJobs();
+  else if (n === 'daily') renderDailyBoard();
+  else if (n === 'dispatch') renderDispatch();
+  else if (n === 'techs') renderTechs();
+  else if (n === 'customers') renderCustomers();
+  else if (n === 'sms') renderSMSPage();
+  else if (n === 'booking') renderBookingPage();
+  else if (n === 'finance') renderFinance();
+  else if (n === 'reports') renderReports();
+  else if (n === 'workflows') renderWorkflowsPage();
+  else if (n === 'ai') renderAIPage();
+  else if (n === 'settings') renderSettings();
+}
+</script>
+<script>
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+async function renderDashboard() {
+  try {
+    const d = await api('/api/analytics/dashboard');
+    if ($('d-today')) $('d-today').textContent = d.todayTotal || 0;
+    if ($('d-done')) $('d-done').textContent = d.weekTotal || 0;
+    if ($('d-cancelled')) $('d-cancelled').textContent = d.cancelled || 0;
+    if (currentUser?.role !== 'admin') {
+      if ($('d-rev-card')) $('d-rev-card').style.display = 'none';
+      if ($('d-out-card')) $('d-out-card').style.display = 'none';
+    } else {
+      if ($('d-rev') && d.revenue) $('d-rev').textContent = fmt(d.revenue.week);
+      if ($('d-out') && d.revenue) $('d-out').textContent = fmt(d.revenue.outstanding);
+    }
+    if ($('dash-jobs-tbody')) {
+      $('dash-jobs-tbody').innerHTML = (d.today || []).slice(0, 8).map(j =>
+        `<tr style="cursor:pointer" onclick="openTicket('${j.id}')"><td style="font-weight:600;color:var(--primary);font-size:10px">${j.id}</td><td style="font-size:11px">${j.customer_name || '—'}</td><td>${statusBadge(j.status)}</td></tr>`
+      ).join('') || '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">No jobs today</td></tr>';
+    }
+    drawTrendChart(d.last7 || []);
+    drawStatusChart(d.statusCounts || {});
+    drawTypesChart(d.typeCounts || {});
+    renderDashTechPerf(d.techPerf || []);
+  } catch(e) { console.error('Dashboard:', e); }
+}
+
+function drawTrendChart(data) {
+  const canvas = $('chart-trend'); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.offsetWidth || 280; canvas.width = w; canvas.height = 140;
+  ctx.clearRect(0, 0, w, 140);
+  if (!data.length) return;
+  const max = Math.max(...data.map(d => d.total), 1);
+  const barW = Math.floor((w - 40) / data.length) - 4;
+  ctx.font = '10px sans-serif';
+  data.forEach((d, i) => {
+    const x = 20 + i * (barW + 4);
+    const doneH = Math.floor((d.done / max) * 90);
+    const cancH = Math.floor(((d.cancelled || 0) / max) * 90);
+    const otherH = Math.floor(((d.total - d.done - (d.cancelled || 0)) / max) * 90);
+    ctx.fillStyle = 'rgba(30,111,255,0.3)'; ctx.fillRect(x, 110 - otherH, barW, otherH);
+    ctx.fillStyle = 'rgba(34,197,94,0.8)'; ctx.fillRect(x, 110 - otherH - doneH, barW, doneH);
+    ctx.fillStyle = 'rgba(239,68,68,0.7)'; ctx.fillRect(x, 110 - otherH - doneH - cancH, barW, cancH);
+    ctx.fillStyle = '#718096'; ctx.textAlign = 'center'; ctx.fillText(d.label, x + barW / 2, 128);
+    if (d.total > 0) { ctx.fillStyle = '#1a202c'; ctx.font = 'bold 10px sans-serif'; ctx.fillText(d.total, x + barW / 2, 108 - otherH - doneH - cancH); ctx.font = '10px sans-serif'; }
+  });
+}
+
+function drawStatusChart(statusCounts) {
+  const canvas = $('chart-status'); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const colors = { new:'#3b82f6', assigned:'#f59e0b', 'in-progress':'#1e6fff', done:'#22c55e', cancelled:'#ef4444' };
+  const entries = Object.entries(statusCounts).filter(([, v]) => v > 0);
+  const total = entries.reduce((a, [, v]) => a + v, 0);
+  ctx.clearRect(0, 0, 110, 110);
+  if (!total) return;
+  let start = -Math.PI / 2;
+  entries.forEach(([s, c]) => {
+    const angle = (c / total) * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(55, 55); ctx.arc(55, 55, 48, start, start + angle); ctx.closePath();
+    ctx.fillStyle = colors[s] || '#94a3b8'; ctx.fill();
+    start += angle;
+  });
+  ctx.beginPath(); ctx.arc(55, 55, 28, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.fillStyle = '#1a202c'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(total, 55, 55);
+  const legend = $('chart-status-legend');
+  if (legend) legend.innerHTML = entries.map(([s, c]) => `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px"><div style="width:10px;height:10px;border-radius:2px;background:${colors[s] || '#94a3b8'};flex-shrink:0"></div><span style="font-size:11px;color:var(--text2)">${s}: <strong>${c}</strong></span></div>`).join('');
+}
+
+function drawTypesChart(typeCounts) {
+  const canvas = $('chart-types'); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const entries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const w = canvas.offsetWidth || 260; canvas.width = w; canvas.height = 140;
+  ctx.clearRect(0, 0, w, 140);
+  if (!entries.length) return;
+  const max = entries[0][1]; const barH = 17; const gap = 4; const labelW = 95;
+  ctx.font = '10px sans-serif';
+  entries.forEach(([type, count], i) => {
+    const y = 8 + i * (barH + gap);
+    const barLen = Math.floor((w - labelW - 40) * count / max);
+    ctx.fillStyle = '#718096'; ctx.textAlign = 'right';
+    ctx.fillText(type.length > 13 ? type.slice(0, 13) + '…' : type, labelW - 4, y + barH - 4);
+    const hue = (i * 40) % 360;
+    ctx.fillStyle = `hsl(${hue},65%,55%)`;
+    ctx.beginPath(); ctx.roundRect(labelW, y, barLen, barH, 3); ctx.fill();
+    ctx.fillStyle = '#1a202c'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(count, labelW + barLen + 4, y + barH - 4); ctx.font = '10px sans-serif';
+  });
+}
+
+function renderDashTechPerf(techPerf) {
+  const el = $('dash-tech-perf'); if (!el) return;
+  if (!techPerf.length) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">No tech data</div>'; return; }
+  el.innerHTML = techPerf.map(tp => {
+    const t = tp.tech;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="width:32px;height:32px;border-radius:50%;background:${t.color || '#1e6fff'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0">${t.initials || 'T'}</div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:12px;font-weight:500">${t.name}</span>
+          <span style="font-size:11px;color:var(--text3)">${tp.done}/${tp.total} · ${tp.completionRate}%</span>
+        </div>
+        <div style="display:flex;gap:2px;height:5px;border-radius:3px;overflow:hidden;background:#e5e7eb">
+          <div style="width:${tp.total ? (tp.done / tp.total * 100) : 0}%;background:var(--success)"></div>
+          <div style="width:${tp.total ? ((tp.cancelled || 0) / tp.total * 100) : 0}%;background:var(--danger)"></div>
+          <div style="width:${tp.total ? (tp.inProgress / tp.total * 100) : 0}%;background:var(--primary)"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:3px;font-size:10px;color:var(--text3)">
+          <span style="color:var(--success)">✓ ${tp.done}</span>
+          <span style="color:var(--danger)">✗ ${tp.cancelled || 0}</span>
+          ${currentUser?.role === 'admin' && tp.revenue ? `<span style="color:var(--success);margin-left:auto;font-weight:600">${fmt(tp.revenue)}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── JOBS ─────────────────────────────────────────────────────────────────────
+function renderJobs() {
+  const search = ($('jobs-search')?.value || '').toLowerCase();
+  const status = $('jobs-status-filter')?.value || '';
+  const tech = $('jobs-tech-filter')?.value || '';
+  const techSel = $('jobs-tech-filter');
+  if (techSel && techSel.options.length <= 1) {
+    appData.techs.forEach(t => { const o = document.createElement('option'); o.value = t.name; o.textContent = t.name; techSel.appendChild(o); });
+  }
+  let jobs = appData.jobs.filter(j => {
+    if (status && j.status !== status) return false;
+    if (tech && j.tech_name !== tech) return false;
+    if (search && !((j.id + j.title + j.customer_name + j.address).toLowerCase().includes(search))) return false;
+    return true;
+  });
+  const tbody = $('jobs-tbody'); if (!tbody) return;
+  tbody.innerHTML = jobs.map(j => {
+    const inv = appData.invoices.find(i => i.id === j.invoice_id);
+    const invCell = inv ? `<span class="badge badge-${inv.status === 'paid' ? 'paid' : 'unpaid'}">${fmt(inv.total)}</span>` : '—';
+    const tags = (j.tags || []).slice(0, 2).map(tg => {
+      const tagObj = appData.tags.find(x => x.label === tg);
+      return `<span style="background:${tagObj ? tagObj.color : '#1e6fff'};color:#fff;padding:1px 5px;border-radius:8px;font-size:9px;margin-left:2px">${tg}</span>`;
+    }).join('');
+    return `<tr style="cursor:pointer" onclick="openTicket('${j.id}')">
+      <td style="font-weight:600;color:var(--primary);font-size:11px">${j.id}</td>
+      <td style="font-weight:500">${j.title || j.job_type || '—'}${tags}</td>
+      <td>${j.customer_name || '—'}</td>
+      <td>${techAv(j.tech_name)}</td>
+      <td style="font-size:11px">${pdot(j.priority || 'med')}</td>
+      <td>${statusBadge(j.status)}</td>
+      <td style="font-size:11px;color:var(--text3)">${j.job_date || ''}</td>
+      <td>${invCell}</td>
+      <td style="padding:8px 12px">
+        <div style="display:flex;gap:3px">
+          <button class="btn btn-sm btn-icon" onclick="event.stopPropagation();openTicket('${j.id}')"><i class="ti ti-eye"></i></button>
+          ${currentUser?.role === 'admin' ? `<button class="btn btn-sm btn-icon" style="color:var(--danger)" onclick="event.stopPropagation();deleteJob('${j.id}')"><i class="ti ti-trash"></i></button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text3)">No jobs found</td></tr>';
+}
+
+// ─── NEW JOB ──────────────────────────────────────────────────────────────────
+const JOB_TYPES = ['Car Lockout','Trunk Lockout','Car Key','Ignition Job','Key Extraction','House Lockout','Business Lockout','House Lock-Change','Business Lock-Change','Mailbox Lock-Change','Storage Lockout','Storage Lock-Change','Safe Lockout','Other'];
+const CAR_TYPES = ['Car Lockout','Trunk Lockout','Car Key','Ignition Job','Key Extraction'];
+
+function openNewJobModal() {
+  openModal('New Job', `
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Customer Name *</label><input class="form-input" id="nj-name" placeholder="Full name"/></div>
+      <div class="form-group"><label class="form-label">Phone *</label><input class="form-input" id="nj-phone" type="tel" placeholder="+1 (305) 555-0000" oninput="liveCheckDupe(this.value,'phone')"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Address *</label><input class="form-input" id="nj-addr" placeholder="Service address" oninput="liveCheckDupe(this.value,'address')"/></div>
+    <div id="dupe-alert" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius);padding:8px 12px;font-size:11px;color:#92400e;margin-bottom:8px"></div>
+    <div class="form-group"><label class="form-label">Job Type *</label>
+      <select class="form-input" id="nj-type" onchange="handleJobTypeChange(this.value)">
+        <option value="">Select job type...</option>
+        ${JOB_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+      </select>
+    </div>
+    <div id="nj-car-fields" style="display:none;background:var(--primary-light);border-radius:var(--radius);padding:12px;margin-bottom:12px;border:1px solid #bfdbfe">
+      <div style="font-size:11px;font-weight:600;color:var(--primary);margin-bottom:8px">🚗 Vehicle Required</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Make & Model *</label><input class="form-input" id="nj-car-make" placeholder="e.g. Toyota Camry"/></div>
+        <div class="form-group"><label class="form-label">Year *</label><input class="form-input" id="nj-car-year" type="number" placeholder="2019" min="1990" max="2030"/></div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Scheduled Date & Time</label><input class="form-input" id="nj-scheduled" type="datetime-local"/></div>
+      <div class="form-group"><label class="form-label">Assign Tech</label>
+        <select class="form-input" id="nj-tech">
+          <option value="">Unassigned</option>
+          ${appData.techs.filter(t => t.role === 'tech').map(t => `<option value="${t.id}" data-name="${t.name}">${t.name}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-input" id="nj-notes" placeholder="Additional notes..."></textarea></div>
+    <div style="font-size:11px;color:var(--text3);padding:8px;background:var(--bg);border-radius:var(--radius)"><i class="ti ti-calendar" style="margin-right:4px"></i>Created date is auto-set to today.</div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Create Job', primary: true, fn: 'confirmNewJob()' }]
+  );
+}
+
+function handleJobTypeChange(val) {
+  const cf = $('nj-car-fields');
+  if (cf) cf.style.display = CAR_TYPES.includes(val) ? 'block' : 'none';
+}
+
+function liveCheckDupe(val, field) {
+  const phone = field === 'phone' ? val : ($('nj-phone')?.value || '');
+  const addr = field === 'address' ? val : ($('nj-addr')?.value || '');
+  const alert = $('dupe-alert'); if (!alert) return;
+  const dupes = checkDuplicateJob(phone, addr);
+  if (dupes && dupes.length) {
+    alert.style.display = 'block';
+    alert.innerHTML = `⚠️ <strong>${dupes.length} similar job${dupes.length > 1 ? 's' : ''} found:</strong> ` +
+      dupes.slice(0, 2).map(j => `<span style="text-decoration:underline;cursor:pointer" onclick="openTicket('${j.id}');closeModal()">${j.id} (${j.status})</span>`).join(', ') +
+      ` <span style="text-decoration:underline;cursor:pointer;margin-left:6px" onclick="this.parentElement.style.display='none'">Dismiss</span>`;
+  } else { alert.style.display = 'none'; }
+}
+
+function checkDuplicateJob(phone, address) {
+  if (!phone && !address) return null;
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const matches = appData.jobs.filter(j => {
+    if (j.status === 'cancelled') return false;
+    if (new Date(j.created_at) < cutoff) return false;
+    const norm = s => s.replace(/\D/g, '');
+    if (phone && j.phone && norm(j.phone) === norm(phone) && phone.length > 6) return true;
+    if (address && j.address && address.length > 5) {
+      const n = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (n(j.address).includes(n(address.slice(0, 8)))) return true;
+    }
+    return false;
+  });
+  return matches.length ? matches : null;
+}
+
+async function confirmNewJob() {
+  const name = $('nj-name')?.value?.trim();
+  const phone = $('nj-phone')?.value?.trim();
+  const addr = $('nj-addr')?.value?.trim();
+  const jobType = $('nj-type')?.value;
+  const carMake = $('nj-car-make')?.value?.trim();
+  const carYear = $('nj-car-year')?.value?.trim();
+  const techSel = $('nj-tech');
+  const scheduled = $('nj-scheduled')?.value;
+  const notes = $('nj-notes')?.value?.trim();
+  if (!name) { showToast('Customer name required', 'error'); return; }
+  if (!phone) { showToast('Phone required', 'error'); return; }
+  if (!addr) { showToast('Address required', 'error'); return; }
+  if (!jobType) { showToast('Job type required', 'error'); return; }
+  if (CAR_TYPES.includes(jobType) && !carMake) { showToast('Car make & model required', 'error'); return; }
+  if (CAR_TYPES.includes(jobType) && !carYear) { showToast('Car year required', 'error'); return; }
+  const dupes = checkDuplicateJob(phone, addr);
+  if (dupes && dupes.length && !window._dupeOverride) {
+    window._dupeOverride = false;
+    openModal('⚠️ Duplicate Warning', `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius);padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:#92400e;margin-bottom:8px">Found ${dupes.length} similar job${dupes.length > 1 ? 's' : ''}:</div>
+        ${dupes.map(j => `<div style="padding:6px 8px;background:#fff;border-radius:var(--radius);margin-bottom:5px;font-size:11px;cursor:pointer" onclick="openTicket('${j.id}');closeModal()"><strong style="color:var(--primary)">${j.id}</strong> — ${j.title} — ${statusBadge(j.status)}</div>`).join('')}
+      </div>
+      <div style="font-size:12px">Continue creating a new job anyway?</div>`,
+      [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Create Anyway', primary: true, fn: 'window._dupeOverride=true;closeModal();openNewJobModal();' }]
+    );
+    return;
+  }
+  window._dupeOverride = false;
+  let customer = appData.customers.find(c => c.phone === phone || c.name?.toLowerCase() === name.toLowerCase());
+  if (!customer) {
+    try { customer = await api('/api/customers', { method: 'POST', body: { name, phone, address: addr } }); appData.customers.push(customer); }
+    catch(e) { showToast('Customer error: ' + e.message, 'error'); return; }
+  }
+  const techOpt = techSel?.options[techSel.selectedIndex];
+  const tech_id = techSel?.value || null;
+  const tech_name = tech_id ? (techOpt?.dataset?.name || null) : null;
+  try {
+    const data = await api('/api/jobs', { method: 'POST', body: {
+      title: jobType + (CAR_TYPES.includes(jobType) && carMake ? ' — ' + carMake : ''),
+      customer_id: customer.id, customer_name: name, phone, address: addr,
+      job_type: jobType, car_make_model: carMake || null, car_year: carYear || null,
+      tech_id, tech_name, priority: 'med', status: tech_id ? 'assigned' : 'new',
+      job_date: new Date().toISOString().split('T')[0],
+      scheduled_date: scheduled ? new Date(scheduled).toISOString() : null, notes
+    }});
+    appData.jobs.unshift(data); updateBadges(); closeModal(); renderPage(currentPage);
+    showToast('Job ' + data.id + ' created!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function deleteJob(id) {
+  if (currentUser?.role !== 'admin') { showToast('Admin only', 'error'); return; }
+  if (!confirm('Delete job ' + id + '? Cannot be undone.')) return;
+  try {
+    await api('/api/jobs/' + id, { method: 'DELETE' });
+    appData.jobs = appData.jobs.filter(j => j.id !== id);
+    updateBadges();
+    if (currentPage === 'ticket') showPage('jobs', null);
+    else renderPage(currentPage);
+    showToast('Job ' + id + ' deleted', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+</script>
+<script>
+// ─── DAILY BOARD ──────────────────────────────────────────────────────────────
+function renderDailyBoard() {
+  const dateEl = $('board-date');
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  loadDailyBoard();
+}
+function setBoardToday() { const d = $('board-date'); if (d) d.value = new Date().toISOString().split('T')[0]; loadDailyBoard(); }
+function changeBoardDate(n) {
+  const d = $('board-date'); if (!d) return;
+  const dt = new Date(d.value + 'T12:00:00'); dt.setDate(dt.getDate() + n);
+  d.value = dt.toISOString().split('T')[0]; loadDailyBoard();
+}
+async function loadDailyBoard() {
+  const date = $('board-date')?.value || new Date().toISOString().split('T')[0];
+  const status = $('board-status-filter')?.value || '';
+  try {
+    let jobs = await api('/api/jobs/daily-board?date=' + date);
+    if (status) jobs = jobs.filter(j => j.status === status);
+    const pills = $('board-summary-pills');
+    if (pills) {
+      const counts = { new:0, assigned:0, 'in-progress':0, done:0, cancelled:0 };
+      jobs.forEach(j => { if (counts[j.status] !== undefined) counts[j.status]++; });
+      const colors = { new:'var(--info)', assigned:'var(--warning)', 'in-progress':'var(--primary)', done:'var(--success)', cancelled:'var(--danger)' };
+      pills.innerHTML = Object.entries(counts).map(([s, c]) =>
+        `<span style="background:${colors[s]};color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer" onclick="document.getElementById('board-status-filter').value='${s}';loadDailyBoard()">${s.charAt(0).toUpperCase() + s.slice(1).replace('-', ' ')}: ${c}</span>`
+      ).join('');
+    }
+    const tbody = $('board-tbody'); if (!tbody) return;
+    tbody.innerHTML = jobs.map(j => {
+      const inv = appData.invoices.find(i => i.id === j.invoice_id);
+      const schedTime = j.scheduled_date ? new Date(j.scheduled_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—';
+      const isLate = j.status !== 'done' && j.status !== 'cancelled' && j.scheduled_date && new Date(j.scheduled_date) < new Date();
+      return `<tr style="cursor:pointer${isLate ? ';background:#fef2f2' : ''}" onclick="openTicket('${j.id}')">
+        <td style="font-weight:600;color:var(--primary);font-size:10px">${j.id}</td>
+        <td style="font-size:11px;font-weight:500">${j.customer_name || '—'}${j.phone ? `<div style="font-size:10px;color:var(--text3)">${j.phone}</div>` : ''}</td>
+        <td style="font-size:11px">${j.job_type || j.title || '—'}</td>
+        <td style="font-size:11px;color:var(--text3)">${j.address || '—'}</td>
+        <td>${techAv(j.tech_name)}</td>
+        <td style="font-size:11px;${isLate ? 'color:var(--danger);font-weight:600' : 'color:var(--text3)'}">${schedTime}${isLate ? ' ⚠️' : ''}</td>
+        <td>${statusBadge(j.status)}</td>
+        <td>${inv ? `<span class="badge badge-${inv.status === 'paid' ? 'paid' : 'unpaid'}">${fmt(inv.total)}</span>` : `<button class="btn btn-sm" onclick="event.stopPropagation();currentTicketId='${j.id}';openTicketInvoiceModal()"><i class="ti ti-file-invoice"></i></button>`}</td>
+        <td style="padding:8px 12px"><button class="btn btn-sm btn-icon" onclick="event.stopPropagation();openSMSQuickActions('${j.id}','${j.customer_name}')"><i class="ti ti-bolt"></i></button></td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text3)">No jobs for ${date}</td></tr>`;
+  } catch(e) { console.error(e); }
+}
+
+// ─── DISPATCH ─────────────────────────────────────────────────────────────────
+function renderDispatch() {
+  const board = $('kanban-board'); if (!board) return;
+  const cols = ['new', 'assigned', 'in-progress', 'done'];
+  const colColors = { new: '#3b82f6', assigned: '#f59e0b', 'in-progress': '#1e6fff', done: '#22c55e' };
+  board.innerHTML = cols.map(status => {
+    const jobs = appData.jobs.filter(j => j.status === status);
+    return `<div class="kanban-col">
+      <div class="kanban-col-title" style="color:${colColors[status]}"><i class="ti ti-circle-filled" style="font-size:8px;margin-right:4px"></i>${status.replace('-', ' ')} <span style="font-size:11px;opacity:0.6">(${jobs.length})</span></div>
+      ${jobs.map(j => `<div class="job-card" onclick="openTicket('${j.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:5px">
+          <span style="font-size:10px;font-weight:700;color:var(--primary)">${j.id}</span>
+          ${pdot(j.priority || 'med') ? `<span style="font-size:10px;color:var(--text3)">${j.priority || 'med'}</span>` : ''}
+        </div>
+        <div style="font-size:12px;font-weight:500;margin-bottom:4px">${j.title || j.job_type || '—'}</div>
+        <div style="font-size:11px;color:var(--text3)">${j.customer_name || '—'}</div>
+        ${j.tech_name ? `<div style="margin-top:6px">${techAv(j.tech_name)}</div>` : ''}
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ─── TECHS ────────────────────────────────────────────────────────────────────
+function renderTechs() {
+  const grid = $('techs-grid'); if (!grid) return;
+  const statuses = { online: 'var(--success)', away: 'var(--warning)', offline: '#94a3b8' };
+  grid.innerHTML = appData.techs.filter(t => t.role === 'tech').map(t => {
+    const techJobs = appData.jobs.filter(j => j.tech_id === t.id || j.tech_name === t.name);
+    const active = techJobs.filter(j => j.status === 'in-progress' || j.status === 'assigned').length;
+    return `<div class="card" style="padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:42px;height:42px;border-radius:50%;background:${t.color || '#1e6fff'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;flex-shrink:0;position:relative">
+          ${t.initials || 'T'}
+          <div style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:${statuses[t.status] || '#94a3b8'};border:2px solid #fff"></div>
+        </div>
+        <div><div style="font-weight:600;font-size:13px">${t.name}</div><div style="font-size:11px;color:var(--text3)">${t.phone || 'No phone'}</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:11px">
+        <span style="color:var(--text3)">Active Jobs</span><span style="font-weight:600">${active}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:11px">
+        <span style="color:var(--text3)">Total Jobs</span><span style="font-weight:600">${techJobs.length}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:11px">
+        <span style="color:var(--text3)">Masking</span>
+        <span style="font-weight:600;color:${t.use_masking !== false ? 'var(--primary)' : 'var(--text3)'}">${t.use_masking !== false ? 'EXT' : 'Direct'}</span>
+      </div>
+      <div style="display:flex;gap:5px;margin-top:4px">
+        <button class="btn btn-sm" style="flex:1" onclick="openSMSWith('${t.name}',true)"><i class="ti ti-message"></i> SMS</button>
+        <button class="btn btn-sm btn-icon" onclick="openMaskedCallModal('${t.name}','${t.phone || ''}')"><i class="ti ti-phone"></i></button>
+        ${currentUser?.role === 'admin' ? `<button class="btn btn-sm btn-icon" onclick="openTechCallSettings('${t.id}')"><i class="ti ti-settings"></i></button>` : ''}
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty-state"><i class="ti ti-users"></i><p>No technicians yet</p></div>';
+}
+
+function openAddTechModal() {
+  openModal('Add Technician', `
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="at-name"/></div>
+      <div class="form-group"><label class="form-label">Email *</label><input class="form-input" type="email" id="at-email"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="at-phone" type="tel"/></div>
+      <div class="form-group"><label class="form-label">Password *</label><input class="form-input" type="password" id="at-pass"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Color</label><input type="color" class="form-input" id="at-color" value="#1e6fff" style="height:38px;cursor:pointer"/></div>
+      <div class="form-group"><label class="form-label">Role</label><select class="form-input" id="at-role"><option value="tech">Technician</option><option value="dispatch">Dispatcher</option><option value="admin">Admin</option></select></div>
+    </div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Add', primary: true, fn: 'confirmAddTech()' }]
+  );
+}
+
+async function confirmAddTech() {
+  const name = $('at-name')?.value?.trim();
+  const email = $('at-email')?.value?.trim();
+  const password = $('at-pass')?.value;
+  if (!name || !email || !password) { showToast('Name, email, password required', 'error'); return; }
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  try {
+    const data = await api('/api/users', { method: 'POST', body: { name, email, password, phone: $('at-phone')?.value, color: $('at-color')?.value, role: $('at-role')?.value, initials }});
+    appData.techs.push(data); closeModal(); renderTechs(); showToast('Tech added!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function openTechCallSettings(techId) {
+  const t = appData.techs.find(x => x.id === techId); if (!t) return;
+  openModal('Call Settings — ' + t.name, `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Choose how calls are routed for this technician.</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div><div class="settings-row-label">Use Call Masking (EXT)</div><div class="settings-row-desc">Calls route through business number</div></div>
+        <div class="toggle ${t.use_masking !== false ? 'on' : ''}" id="tm-toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:12px"><label class="form-label">Direct Phone Number</label><input class="form-input" id="tm-direct" value="${t.direct_phone || t.phone || ''}" placeholder="+1 305 555 0000"/></div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Save', primary: true, fn: `saveTechCallSettings('${techId}')` }]
+  );
+}
+
+async function saveTechCallSettings(techId) {
+  const useMasking = $('tm-toggle')?.classList.contains('on');
+  const directPhone = $('tm-direct')?.value;
+  try {
+    await api('/api/users/' + techId + '/call-settings', { method: 'PUT', body: { use_masking: useMasking, direct_phone: directPhone }});
+    const t = appData.techs.find(x => x.id === techId);
+    if (t) { t.use_masking = useMasking; t.direct_phone = directPhone; }
+    closeModal(); renderTechs(); showToast('Call settings saved!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ─── CUSTOMERS ────────────────────────────────────────────────────────────────
+function renderCustomers() {
+  const search = ($('cust-search')?.value || '').toLowerCase();
+  const tbody = $('customers-tbody'); if (!tbody) return;
+  const customers = appData.customers.filter(c => !search || (c.name + c.phone + c.address).toLowerCase().includes(search));
+  tbody.innerHTML = customers.map(c => {
+    const jobs = appData.jobs.filter(j => j.customer_id === c.id || j.customer_name === c.name).length;
+    return `<tr>
+      <td style="font-weight:500">${c.name}</td>
+      <td style="font-size:11px">${c.phone || '—'}</td>
+      <td style="font-size:11px;color:var(--text3)">${c.address || '—'}</td>
+      <td style="font-size:11px">${jobs} job${jobs !== 1 ? 's' : ''}</td>
+      <td style="padding:8px 12px"><div style="display:flex;gap:4px">
+        <button class="btn btn-sm btn-icon" onclick="openSMSWith('${c.name}',true,'${c.phone || ''}')"><i class="ti ti-message"></i></button>
+        <button class="btn btn-sm btn-icon" onclick="openMaskedCallModal('${c.name}','${c.phone || ''}')"><i class="ti ti-phone"></i></button>
+      </div></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text3)">No customers found</td></tr>';
+}
+
+function openAddCustomerModal() {
+  openModal('Add Customer', `
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="ac-name"/></div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="ac-phone" type="tel"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="ac-addr"/></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="ac-email" type="email"/></div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Add', primary: true, fn: 'confirmAddCustomer()' }]
+  );
+}
+
+async function confirmAddCustomer() {
+  const name = $('ac-name')?.value?.trim();
+  if (!name) { showToast('Name required', 'error'); return; }
+  try {
+    const data = await api('/api/customers', { method: 'POST', body: { name, phone: $('ac-phone')?.value, address: $('ac-addr')?.value, email: $('ac-email')?.value }});
+    appData.customers.push(data); closeModal(); renderCustomers(); showToast('Customer added!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+</script>
+<script>
+// ─── SMS / CALLS ──────────────────────────────────────────────────────────────
+function renderSMSPage() {
+  buildSMSContacts();
+  renderSMSContactList();
+}
+
+function buildSMSContacts() {
+  const contacts = [];
+  appData.customers.forEach(c => { if (c.phone) contacts.push({ name: c.name, phone: c.phone, type: 'customer', lastMsg: null }); });
+  appData.techs.forEach(t => { if (t.phone && t.role === 'tech') contacts.push({ name: t.name, phone: t.phone, type: 'tech', lastMsg: null }); });
+  allSmsContacts = contacts;
+}
+
+function renderSMSContactList(filter) {
+  const list = $('sms-contact-list'); if (!list) return;
+  const contacts = filter ? allSmsContacts.filter(c => c.name.toLowerCase().includes(filter.toLowerCase())) : allSmsContacts;
+  list.innerHTML = contacts.map(c => `
+    <div class="sms-contact ${currentSmsContact === c.name ? 'active' : ''}" onclick="openSMSWith('${c.name}',false,'${c.phone}')">
+      <div style="width:32px;height:32px;border-radius:50%;background:${c.type === 'tech' ? '#7c3aed' : 'var(--primary)'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0">${c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div><div style="font-size:10px;color:var(--text3)">${c.phone}</div></div>
+      <div style="font-size:10px;color:var(--text3);padding:2px 6px;background:var(--bg);border-radius:10px">${c.type}</div>
+    </div>`).join('') || '<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">No contacts</div>';
+}
+
+function filterSMSContacts(val) { renderSMSContactList(val); }
+
+async function searchMessages(query) {
+  const resultsEl = $('sms-search-results');
+  if (!query || query.trim().length < 2) { if (resultsEl) resultsEl.style.display = 'none'; return; }
+  const q = query.toLowerCase().trim();
+  try {
+    if (!allMessagesCache.length) allMessagesCache = await api('/api/messages');
+    const matches = allMessagesCache.filter(m => m.body && m.body.toLowerCase().includes(q));
+    if (!resultsEl) return;
+    if (!matches.length) { resultsEl.style.display = 'block'; resultsEl.innerHTML = '<div style="padding:10px 12px;font-size:11px;color:var(--text3)">No messages found</div>'; return; }
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = '<div style="padding:5px 12px;font-size:10px;font-weight:600;color:var(--warning)">' + matches.length + ' result' + (matches.length > 1 ? 's' : '') + '</div>' +
+      matches.slice(0, 15).map(m => {
+        const hl = m.body.replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), match => `<mark style="background:#fef08a">${match}</mark>`);
+        const time = new Date(m.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        return `<div style="padding:7px 12px;border-bottom:1px solid #fde68a;cursor:pointer" onclick="jumpToMessage('${m.contact_name}','${m.id}')">
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:11px;font-weight:600">${m.contact_name}</span><span style="font-size:10px;color:var(--text3)">${time}</span></div>
+          <div style="font-size:11px;color:var(--text2)">${hl.length > 80 ? hl.slice(0, 80) + '...' : hl}</div>
+        </div>`;
+      }).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function jumpToMessage(contactName, messageId) {
+  const searchEl = $('msg-search'); const resultsEl = $('sms-search-results');
+  if (searchEl) searchEl.value = '';
+  if (resultsEl) resultsEl.style.display = 'none';
+  allMessagesCache = [];
+  await openSMSWith(contactName, false, '', '');
+  setTimeout(() => {
+    const msgEl = $('msg-' + messageId);
+    if (msgEl) {
+      msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      msgEl.style.transition = 'background 0.3s';
+      msgEl.style.background = '#fef08a';
+      setTimeout(() => { msgEl.style.background = ''; }, 2000);
+    }
+  }, 400);
+}
+
+async function openSMSWith(name, navigate, phone, customerPhone) {
+  if (navigate && currentPage !== 'sms') { showPage('sms', document.querySelector('[onclick*="sms"]')); setTimeout(() => openSMSWith(name, false, phone, customerPhone), 150); return; }
+  currentSmsContact = name;
+  const contact = allSmsContacts.find(c => c.name === name);
+  const contactPhone = phone || customerPhone || contact?.phone || '';
+  const tech = appData.techs.find(t => t.name === name);
+  const col = tech ? (tech.color || '#7c3aed') : 'var(--primary)';
+  const av = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const isTech = !!(tech && tech.role === 'tech');
+  const relatedJobs = appData.jobs.filter(j => j.customer_name === name || j.tech_name === name).slice(0, 3);
+  renderSMSContactList();
+  let msgs = [];
+  try { msgs = await api('/api/messages?contact=' + encodeURIComponent(name)); } catch(e) {}
+  const chatArea = $('sms-chat-area'); if (!chatArea) return;
+  chatArea.innerHTML = `
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:10px">
+      <div style="width:34px;height:34px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">${av}</div>
+      <div><div style="font-size:13px;font-weight:600">${name}</div><div style="font-size:11px;color:var(--text3)">${contactPhone}</div></div>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        ${relatedJobs.length ? `<button class="btn btn-sm" style="background:var(--primary-light);border-color:var(--primary);color:var(--primary)" onclick="showJobQuickMenu('${name}')"><i class="ti ti-bolt"></i> Quick Actions</button>` : ''}
+        <button class="btn btn-sm" onclick="openMaskedCallModal('${name}','${contactPhone}')"><i class="ti ti-phone"></i> ${isTech ? 'Call Tech' : 'Call Customer'}</button>
+      </div>
+    </div>
+    <div class="sms-messages" id="chat-msgs">
+      ${msgs.map(m => `<div id="msg-${m.id}" style="display:flex;flex-direction:column;align-items:${m.direction === 'out' ? 'flex-end' : 'flex-start'}">
+        <div class="msg-bubble ${m.direction === 'out' ? 'msg-out' : 'msg-in'}">${m.body}</div>
+        <div class="msg-time" style="text-align:${m.direction === 'out' ? 'right' : 'left'};padding:0 4px">${new Date(m.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
+      </div>`).join('')}
+    </div>
+    <div style="padding:10px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:7px">
+      <input class="form-input" id="sms-input" placeholder="Type a message..." style="flex:1" onkeydown="if(event.key==='Enter')sendSMS('${name}','${contactPhone}')"/>
+      <button class="btn btn-primary btn-icon" onclick="sendSMS('${name}','${contactPhone}')"><i class="ti ti-send"></i></button>
+    </div>`;
+  const chatMsgs = $('chat-msgs');
+  if (chatMsgs) chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  // Mark as read
+  try { await api('/api/messages/mark-read', { method: 'PUT', body: { contact_name: name }}); } catch(e) {}
+}
+
+function showJobQuickMenu(contactName) {
+  const jobs = appData.jobs.filter(j => j.customer_name === contactName || j.tech_name === contactName).slice(0, 5);
+  if (!jobs.length) { showToast('No jobs for this contact', 'error'); return; }
+  if (jobs.length === 1) { openSMSQuickActions(jobs[0].id, contactName); return; }
+  openModal('Select Job — ' + contactName, `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Which job to take action on?</div>
+    ${jobs.map(j => `<div style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="openSMSQuickActions('${j.id}','${contactName}');closeModal()">
+      <div><div style="font-weight:600;font-size:12px">${j.id} — ${j.title || j.job_type || '—'}</div><div style="font-size:11px;color:var(--text3)">${j.address || ''}</div></div>
+      ${statusBadge(j.status)}
+    </div>`).join('')}`,
+    [{ label: 'Cancel', fn: 'closeModal()' }]
+  );
+}
+
+async function sendSMS(name, phone) {
+  const inp = $('sms-input'); if (!inp || !inp.value.trim()) return;
+  const body = inp.value.trim(); inp.value = '';
+  try {
+    await api('/api/messages/send', { method: 'POST', body: { to: phone, body, contact_name: name }});
+    openSMSWith(name, false, phone);
+  } catch(e) { showToast('SMS failed: ' + e.message, 'error'); }
+}
+
+// ─── QUICK ACTIONS ────────────────────────────────────────────────────────────
+function openSMSQuickActions(jobId, contactName) {
+  const j = appData.jobs.find(x => x.id === jobId); if (!j) return;
+  openModal('Quick Actions — ' + jobId, `
+    <div style="background:var(--bg);padding:8px 12px;border-radius:var(--radius);margin-bottom:14px;font-size:12px"><strong>${j.title || j.job_type || 'Job'}</strong> · ${j.customer_name}</div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Status</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${['new','assigned','in-progress','done','cancelled'].map(s => `<button class="btn btn-sm ${j.status === s ? 'btn-primary' : ''}" style="${s === 'cancelled' ? 'color:var(--danger);border-color:var(--danger)' : ''}" onclick="quickSetStatus('${jobId}','${s}')">${s.charAt(0).toUpperCase() + s.slice(1).replace('-',' ')}</button>`).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Assign Tech</div>
+      <div style="display:flex;gap:7px">
+        <select class="form-input" id="qa-tech-sel" style="flex:1">
+          <option value="">Unassigned</option>
+          ${appData.techs.filter(t => t.role === 'tech').map(t => `<option value="${t.id}" data-name="${t.name}" ${j.tech_id === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="quickAssignTech('${jobId}')"><i class="ti ti-check"></i></button>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Schedule</div>
+      <div style="display:flex;gap:7px">
+        <input type="datetime-local" class="form-input" id="qa-schedule" style="flex:1" value="${j.scheduled_date ? new Date(j.scheduled_date).toISOString().slice(0,16) : ''}"/>
+        <button class="btn btn-primary btn-sm" onclick="quickSchedule('${jobId}')"><i class="ti ti-calendar-check"></i></button>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Tags</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${appData.tags.map(t => `<span style="background:${(j.tags||[]).includes(t.label) ? t.color : 'var(--bg)'};color:${(j.tags||[]).includes(t.label) ? '#fff' : 'var(--text2)'};border:1px solid ${(j.tags||[]).includes(t.label) ? t.color : 'var(--border)'};padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;font-weight:500" onclick="quickAddTag('${jobId}','${t.label}')">${t.label}</span>`).join('')}
+      </div>
+    </div>
+    <div style="padding-top:10px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Finance</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        ${!j.invoice_id ? `<button class="btn btn-primary btn-sm" onclick="closeModal();currentTicketId='${jobId}';openTicketInvoiceModal()"><i class="ti ti-file-invoice"></i> Invoice</button>` : ''}
+        ${j.invoice_id ? `<button class="btn btn-sm btn-success" onclick="markPaid('${j.invoice_id}');closeModal()"><i class="ti ti-check"></i> Mark Paid</button>` : ''}
+        <button class="btn btn-sm" onclick="quickSendReview('${jobId}')"><i class="ti ti-star"></i> Send Review</button>
+      </div>
+    </div>`,
+    [{ label: 'Open Ticket', fn: `openTicket('${jobId}');closeModal()` }, { label: 'Done', primary: true, fn: 'closeModal()' }]
+  );
+}
+
+async function quickSetStatus(jobId, status) {
+  try {
+    await api('/api/jobs/' + jobId, { method: 'PUT', body: { status }});
+    const j = appData.jobs.find(x => x.id === jobId); if (j) j.status = status;
+    showToast('Status: ' + status, 'success');
+    if (status === 'done' && appData.settings?.auto_send_receipt === 'true') {
+      try { await api('/api/jobs/' + jobId + '/auto-close-receipt', { method: 'POST' }); showToast('Receipt sent!', 'success'); } catch(e) {}
+    }
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function quickAssignTech(jobId) {
+  const sel = $('qa-tech-sel'); if (!sel) return;
+  const opt = sel.options[sel.selectedIndex];
+  const tech_id = sel.value || null; const tech_name = tech_id ? (opt?.dataset?.name || null) : null;
+  try {
+    await api('/api/jobs/' + jobId, { method: 'PUT', body: { tech_id, tech_name, status: tech_id ? 'assigned' : 'new' }});
+    const j = appData.jobs.find(x => x.id === jobId); if (j) { j.tech_id = tech_id; j.tech_name = tech_name; j.status = tech_id ? 'assigned' : 'new'; }
+    showToast(tech_name ? 'Assigned to ' + tech_name : 'Unassigned', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function quickSchedule(jobId) {
+  const val = $('qa-schedule')?.value; if (!val) { showToast('Pick a date/time', 'error'); return; }
+  try {
+    await api('/api/jobs/' + jobId, { method: 'PUT', body: { scheduled_date: new Date(val).toISOString() }});
+    const j = appData.jobs.find(x => x.id === jobId); if (j) j.scheduled_date = new Date(val).toISOString();
+    closeModal(); showToast('Appointment set!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function quickAddTag(jobId, label) {
+  const j = appData.jobs.find(x => x.id === jobId); if (!j) return;
+  const tags = [...(j.tags || [])]; if (!tags.includes(label)) tags.push(label);
+  try {
+    await api('/api/jobs/' + jobId + '/tags', { method: 'PUT', body: { tags }});
+    j.tags = tags; showToast('Tag added: ' + label, 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function quickSendReview(jobId) {
+  try { await api('/api/jobs/' + jobId + '/auto-close-receipt', { method: 'POST' }); closeModal(); showToast('Review link sent!', 'success'); }
+  catch(e) { showToast(e.message, 'error'); }
+}
+
+function openMaskedCallModal(name, phone) {
+  openModal('Call — ' + name, `
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:40px;margin-bottom:12px">📞</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px">Calling ${name}</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:20px">${phone}</div>
+      <button class="btn btn-success" style="width:100%;justify-content:center;padding:12px" onclick="startMaskedCall('${name}','${phone}')"><i class="ti ti-phone"></i> Start Masked Call</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px">Call will be made through your business number</div>
+    </div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }]
+  );
+}
+
+async function startMaskedCall(name, phone) {
+  try {
+    const r = await api('/api/calls/masked/v2', { method: 'POST', body: { to_name: name, to_phone: phone }});
+    closeModal(); showToast(r.message || 'Call initiated!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+</script>
+<script>
+// ─── TICKET DETAIL ────────────────────────────────────────────────────────────
+async function openTicket(id) {
+  currentTicketId = id;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pg = $('page-ticket'); if (pg) pg.classList.add('active');
+  currentPage = 'ticket';
+  if ($('topbar-title')) $('topbar-title').textContent = 'Ticket — ' + id;
+  await loadTicket(id);
+}
+
+async function loadTicket(id) {
+  const job = appData.jobs.find(j => j.id === id); if (!job) { showToast('Job not found', 'error'); return; }
+  if ($('ticket-page-title')) $('ticket-page-title').textContent = id + ' — ' + (job.title || job.job_type || '');
+  const delBtn = $('ticket-delete-btn');
+  if (delBtn) delBtn.innerHTML = currentUser?.role === 'admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteJob('${id}')"><i class="ti ti-trash"></i> Delete</button>` : '';
+  const carInfo = job.car_make_model ? `<div style="margin-bottom:8px"><span style="font-size:11px;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-weight:600">🚗 ${job.car_make_model}${job.car_year ? ' (' + job.car_year + ')' : ''}</span></div>` : '';
+  if ($('ticket-info-body')) $('ticket-info-body').innerHTML = `
+    ${carInfo}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><div class="form-label">Customer</div><div style="font-size:13px;font-weight:500">${job.customer_name || '—'}</div></div>
+      <div><div class="form-label">Phone</div><div style="font-size:13px">${job.phone || '—'}</div></div>
+      <div><div class="form-label">Address</div><div style="font-size:13px">${job.address || '—'}</div></div>
+      <div><div class="form-label">Job Type</div><div style="font-size:13px">${job.job_type || job.title || '—'}</div></div>
+      <div><div class="form-label">Created</div><div style="font-size:12px;color:var(--text3)">${job.job_date || new Date(job.created_at).toLocaleDateString()}</div></div>
+      <div><div class="form-label">Scheduled</div><div style="font-size:12px;color:var(--text3)">${job.scheduled_date ? new Date(job.scheduled_date).toLocaleString() : '—'}</div></div>
+    </div>`;
+  if ($('ticket-status-body')) $('ticket-status-body').innerHTML = `<div style="display:flex;flex-direction:column;gap:6px">
+    ${(appData.statusLabels || ['new','assigned','in-progress','done','cancelled']).map(s =>
+      `<button class="btn ${job.status === s ? 'btn-primary' : ''}" style="${s === 'cancelled' ? 'color:var(--danger);border-color:var(--danger);' : ''}" onclick="updateTicketStatus('${id}','${s}')">${s.charAt(0).toUpperCase() + s.slice(1).replace('-',' ')}</button>`
+    ).join('')}
+  </div>`;
+  const jobTags = job.tags || [];
+  if ($('ticket-tags-body')) $('ticket-tags-body').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+      ${jobTags.map(t => `<span style="background:${appData.tags.find(x=>x.label===t)?.color||'#1e6fff'};color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer" onclick="removeTag('${id}','${t}')">${t} ×</span>`).join('')}
+      ${!jobTags.length ? '<span style="font-size:12px;color:var(--text3)">No tags</span>' : ''}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+      ${appData.tags.filter(t => !jobTags.includes(t.label)).map(t => `<span style="background:var(--bg);border:1px solid var(--border);padding:3px 8px;border-radius:20px;font-size:11px;cursor:pointer" onclick="addTag('${id}','${t.label}')">${t.label} +</span>`).join('')}
+    </div>
+    <div style="display:flex;gap:6px">
+      <input class="form-input" id="new-tag-input" placeholder="New tag..." style="flex:1"/>
+      <input type="color" id="new-tag-color" value="#1e6fff" style="width:34px;height:32px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer"/>
+      <button class="btn btn-sm btn-primary" onclick="createAndAddTag('${id}')"><i class="ti ti-plus"></i></button>
+    </div>`;
+  const tech = appData.techs.find(t => t.id === job.tech_id || t.name === job.tech_name);
+  if ($('ticket-tech-body')) $('ticket-tech-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      ${tech ? `<div style="width:34px;height:34px;border-radius:50%;background:${tech.color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${tech.initials}</div><div><div style="font-weight:600">${tech.name}</div><div style="font-size:11px;color:var(--text3)">${tech.status || ''}</div></div>` : '<span style="font-size:12px;color:var(--text3)">Unassigned</span>'}
+    </div>
+    <select class="form-input" id="ticket-tech-select" style="margin-bottom:8px">
+      <option value="">Unassigned</option>
+      ${appData.techs.filter(t => t.role === 'tech').map(t => `<option value="${t.id}" data-name="${t.name}" ${job.tech_id === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+    </select>
+    <button class="btn btn-sm btn-primary" style="width:100%" onclick="updateTicketTech('${id}')"><i class="ti ti-check"></i> Update</button>`;
+  if ($('ticket-notes-body')) $('ticket-notes-body').innerHTML = `
+    <textarea class="form-input" id="ticket-notes-input" style="min-height:80px">${job.notes || ''}</textarea>
+    <button class="btn btn-sm btn-primary" style="width:100%;margin-top:8px" onclick="saveTicketNotes('${id}')"><i class="ti ti-device-floppy"></i> Save</button>`;
+  const inv = appData.invoices.find(i => i.id === job.invoice_id);
+  if ($('ticket-finance-body')) {
+    if (inv) {
+      $('ticket-finance-body').innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span class="badge badge-${inv.status === 'paid' ? 'paid' : 'unpaid'}">${inv.id} — ${inv.status.toUpperCase()}</span>
+          <span style="font-size:20px;font-weight:700;color:var(--success)">${fmt(inv.total)}</span>
+        </div>
+        <div style="background:var(--bg);border-radius:var(--radius);padding:10px;margin-bottom:10px;font-size:12px">
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text3)">Labor</span><span>${fmt(inv.labor_cost||0)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text3)">Parts</span><span>${fmt(inv.parts_cost||0)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--text3)">Tax (${inv.tax_rate}%)</span><span>${fmt(inv.tax_amount||0)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);margin-top:4px;font-weight:700"><span>Total</span><span>${fmt(inv.total)}</span></div>
+          ${inv.tech_commission_amount ? `<div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--warning)"><span>Commission (${inv.tech_commission_type === 'percentage' ? inv.tech_commission_value + '%' : '$' + inv.tech_commission_value})</span><span>${fmt(inv.tech_commission_amount)}</span></div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${inv.status === 'unpaid' ? `<button class="btn btn-success btn-sm" onclick="markPaid('${inv.id}');loadTicket('${id}')"><i class="ti ti-check"></i> Mark Paid</button>` : ''}
+          <button class="btn btn-sm" onclick="sendInvoiceSMS('${inv.id}')"><i class="ti ti-send"></i> Send</button>
+          <button class="btn btn-sm" onclick="sendReceipt('${inv.id}')"><i class="ti ti-receipt"></i> Receipt</button>
+          ${currentUser?.role === 'admin' ? `<button class="btn btn-sm" onclick="openEditInvoiceModal('${inv.id}')"><i class="ti ti-edit"></i> Edit</button>` : ''}
+        </div>
+        ${currentUser?.role === 'admin' ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><button class="btn btn-sm" onclick="reopenJob('${id}')"><i class="ti ti-refresh"></i> Reopen Job</button></div>` : ''}`;
+    } else {
+      $('ticket-finance-body').innerHTML = `<div style="text-align:center;padding:16px"><div style="font-size:12px;color:var(--text3);margin-bottom:12px">No invoice yet</div><button class="btn btn-primary" onclick="openTicketInvoiceModal()"><i class="ti ti-file-invoice"></i> Create Invoice</button></div>`;
+    }
+  }
+  loadTicketHistory(id);
+  loadTicketRecordings(id);
+}
+
+async function loadTicketHistory(id) {
+  try {
+    const history = await api('/api/jobs/' + id + '/history');
+    const el = $('ticket-history-body'); if (!el) return;
+    el.innerHTML = history.length ? history.map(h => `<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div style="display:flex;justify-content:space-between"><span style="font-weight:600">${h.action}</span><span style="font-size:10px;color:var(--text3)">${new Date(h.created_at).toLocaleString()}</span></div>
+      <div style="color:var(--text3);margin-top:2px">${h.user_name || 'System'}${h.new_value ? ' → <span style="color:var(--text)">' + h.new_value + '</span>' : ''}</div>
+    </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">No changes yet</div>';
+  } catch(e) {}
+}
+
+async function loadTicketRecordings(id) {
+  try {
+    const recs = await api('/api/jobs/' + id + '/recordings');
+    const el = $('ticket-recordings-body'); if (!el) return;
+    el.innerHTML = recs.length ? recs.map(r => `<div style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:7px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font-size:12px;font-weight:500">${r.tech_name || 'Tech'} → ${r.customer_name || 'Customer'}</div><div style="font-size:10px;color:var(--text3)">${new Date(r.created_at).toLocaleString()} · ${r.duration || 0}s</div></div>
+        <div style="display:flex;gap:5px;align-items:center">
+          ${r.recording_url ? `<audio controls style="height:26px"><source src="${r.recording_url}" type="audio/mp3"></audio>` : '<span style="font-size:10px;color:var(--text3)">Processing...</span>'}
+          <button class="btn btn-sm btn-icon" onclick="summarizeCall('${r.id}')" title="AI Summary"><i class="ti ti-brain"></i></button>
+        </div>
+      </div>
+      ${r.call_summary ? `<div style="margin-top:8px;font-size:11px;background:var(--bg);padding:8px;border-radius:var(--radius);color:var(--text2)">${r.call_summary}</div>` : ''}
+    </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">No recordings yet</div>';
+  } catch(e) {}
+}
+
+async function summarizeCall(recId) {
+  showToast('Generating AI summary...', 'info');
+  try { await api('/api/recordings/' + recId + '/summarize', { method: 'POST' }); loadTicketRecordings(currentTicketId); showToast('Summary ready!', 'success'); }
+  catch(e) { showToast(e.message, 'error'); }
+}
+
+async function updateTicketStatus(id, status) {
+  try {
+    await api('/api/jobs/' + id, { method: 'PUT', body: { status }});
+    const j = appData.jobs.find(x => x.id === id); if (j) j.status = status;
+    loadTicket(id); showToast('Status: ' + status, 'success');
+    if (status === 'done' && appData.settings?.auto_send_receipt === 'true') {
+      try { await api('/api/jobs/' + id + '/auto-close-receipt', { method: 'POST' }); showToast('Receipt sent!', 'success'); } catch(e) {}
+    }
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function updateTicketTech(id) {
+  const sel = $('ticket-tech-select'); if (!sel) return;
+  const opt = sel.options[sel.selectedIndex]; const tech_id = sel.value || null; const tech_name = tech_id ? (opt?.dataset?.name || null) : null;
+  try {
+    await api('/api/jobs/' + id, { method: 'PUT', body: { tech_id, tech_name, status: tech_id ? 'assigned' : 'new' }});
+    const j = appData.jobs.find(x => x.id === id); if (j) { j.tech_id = tech_id; j.tech_name = tech_name; }
+    loadTicket(id); showToast('Tech updated!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function saveTicketNotes(id) {
+  const notes = $('ticket-notes-input')?.value;
+  try { await api('/api/jobs/' + id, { method: 'PUT', body: { notes }}); const j = appData.jobs.find(x => x.id === id); if (j) j.notes = notes; showToast('Saved!', 'success'); }
+  catch(e) { showToast(e.message, 'error'); }
+}
+
+async function addTag(jobId, label) {
+  const j = appData.jobs.find(x => x.id === jobId); if (!j) return;
+  const tags = [...(j.tags || [])]; if (!tags.includes(label)) tags.push(label);
+  try { await api('/api/jobs/' + jobId + '/tags', { method: 'PUT', body: { tags }}); j.tags = tags; loadTicket(jobId); } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function removeTag(jobId, label) {
+  const j = appData.jobs.find(x => x.id === jobId); if (!j) return;
+  const tags = (j.tags || []).filter(t => t !== label);
+  try { await api('/api/jobs/' + jobId + '/tags', { method: 'PUT', body: { tags }}); j.tags = tags; loadTicket(jobId); } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function createAndAddTag(jobId) {
+  const label = $('new-tag-input')?.value?.trim(); const color = $('new-tag-color')?.value || '#1e6fff';
+  if (!label) { showToast('Enter tag name', 'error'); return; }
+  try { const tag = await api('/api/tags', { method: 'POST', body: { label, color }}); appData.tags.push(tag); await addTag(jobId, label); } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function markPaid(invId) {
+  try {
+    await api('/api/invoices/' + invId + '/pay', { method: 'PUT' });
+    const inv = appData.invoices.find(i => i.id === invId); if (inv) inv.status = 'paid';
+    showToast('Marked as paid!', 'success');
+    if (currentPage === 'ticket') loadTicket(currentTicketId);
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function sendInvoiceSMS(invId) {
+  try { await api('/api/invoices/' + invId + '/send', { method: 'POST' }); showToast('Invoice sent!', 'success'); } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function sendReceipt(invId) {
+  try { await api('/api/invoices/' + invId + '/receipt', { method: 'POST' }); showToast('Receipt sent!', 'success'); } catch(e) { showToast(e.message, 'error'); }
+}
+
+function ticketMaskedCall() {
+  const j = appData.jobs.find(x => x.id === currentTicketId); if (!j) return;
+  openMaskedCallModal(j.customer_name, j.phone || '');
+}
+function ticketSendSMS() {
+  const j = appData.jobs.find(x => x.id === currentTicketId); if (!j) return;
+  openSMSWith(j.customer_name, true, j.phone || '');
+}
+
+function openEditJobModal(id) {
+  const j = appData.jobs.find(x => x.id === id); if (!j) return;
+  openModal('Edit Job — ' + id, `
+    <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="ej-addr" value="${j.address || ''}"/></div>
+    <div class="form-group"><label class="form-label">Scheduled</label><input type="datetime-local" class="form-input" id="ej-sched" value="${j.scheduled_date ? new Date(j.scheduled_date).toISOString().slice(0,16) : ''}"/></div>
+    <div class="form-group"><label class="form-label">Priority</label><select class="form-input" id="ej-pri"><option value="low" ${j.priority==='low'?'selected':''}>Low</option><option value="med" ${j.priority==='med'?'selected':''}>Medium</option><option value="high" ${j.priority==='high'?'selected':''}>High</option><option value="emergency" ${j.priority==='emergency'?'selected':''}>Emergency</option></select></div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Save', primary: true, fn: `confirmEditJob('${id}')` }]
+  );
+}
+
+async function confirmEditJob(id) {
+  try {
+    const data = await api('/api/jobs/' + id, { method: 'PUT', body: { address: $('ej-addr')?.value, scheduled_date: $('ej-sched')?.value ? new Date($('ej-sched').value).toISOString() : null, priority: $('ej-pri')?.value }});
+    const j = appData.jobs.find(x => x.id === id); if (j) Object.assign(j, data);
+    closeModal(); loadTicket(id); showToast('Updated!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function openTicketInvoiceModal() {
+  const j = appData.jobs.find(x => x.id === currentTicketId); if (!j) return;
+  const defComm = appData.settings.tech_default_commission || '30';
+  const defCommType = appData.settings.tech_default_commission_type || 'percentage';
+  let lc = 1; let pc = 0;
+  openModal('Create Invoice — ' + currentTicketId, `
+    <div style="background:var(--bg);padding:8px 12px;border-radius:var(--radius);margin-bottom:12px;font-size:12px"><strong>${j.title || j.job_type}</strong> · ${j.customer_name}</div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:7px">Labor</div>
+    <div id="inv-labor-list"><div class="form-row-3" style="margin-bottom:6px"><input class="form-input" placeholder="Description" id="il0-desc" value="Labor"/><input class="form-input" type="number" placeholder="Qty" id="il0-qty" value="1"/><input class="form-input" type="number" placeholder="Rate" id="il0-rate" value="85"/></div></div>
+    <button class="btn btn-sm" onclick="addInvLabor()" style="margin-bottom:12px"><i class="ti ti-plus"></i> Add Labor</button>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:7px">Parts</div>
+    <div id="inv-parts-list"></div>
+    <button class="btn btn-sm" onclick="addInvPart()" style="margin-bottom:12px"><i class="ti ti-plus"></i> Add Part</button>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tax Rate (%)</label><input class="form-input" type="number" id="inv-tax" value="${appData.settings.tax_rate || 8.5}" step="0.1"/></div>
+      <div class="form-group"><label class="form-label">Tech Commission</label><div style="display:flex;gap:6px"><select class="form-input" id="inv-comm-type" style="width:70px"><option value="percentage" ${defCommType==='percentage'?'selected':''}>%</option><option value="cash" ${defCommType==='cash'?'selected':''}>$</option></select><input class="form-input" type="number" id="inv-comm-val" value="${defComm}"/></div></div>
+    </div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Create Invoice', primary: true, fn: 'confirmTicketInvoice()' }]
+  );
+  window._invLC = () => lc; window._invPC = () => pc;
+  window.addInvLabor = () => { const r = document.createElement('div'); r.className = 'form-row-3'; r.style.marginBottom = '6px'; r.innerHTML = `<input class="form-input" placeholder="Description" id="il${lc}-desc"/><input class="form-input" type="number" placeholder="Qty" id="il${lc}-qty" value="1"/><input class="form-input" type="number" placeholder="Rate" id="il${lc}-rate"/>`; $('inv-labor-list').appendChild(r); lc++; };
+  window.addInvPart = () => { const r = document.createElement('div'); r.className = 'form-row-3'; r.style.marginBottom = '6px'; r.innerHTML = `<input class="form-input" placeholder="Part" id="ip${pc}-desc"/><input class="form-input" type="number" placeholder="Qty" id="ip${pc}-qty" value="1"/><input class="form-input" type="number" placeholder="Cost" id="ip${pc}-rate"/>`; $('inv-parts-list').appendChild(r); pc++; };
+}
+
+async function confirmTicketInvoice() {
+  const j = appData.jobs.find(x => x.id === currentTicketId); if (!j) return;
+  const labor = []; for (let i = 0; i < window._invLC(); i++) { const d = $('il' + i + '-desc')?.value; const q = parseFloat($('il' + i + '-qty')?.value) || 1; const r = parseFloat($('il' + i + '-rate')?.value) || 0; if (d) labor.push({ desc: d, qty: q, rate: r }); }
+  const parts = []; for (let i = 0; i < window._invPC(); i++) { const d = $('ip' + i + '-desc')?.value; const q = parseFloat($('ip' + i + '-qty')?.value) || 1; const r = parseFloat($('ip' + i + '-rate')?.value) || 0; if (d) parts.push({ desc: d, qty: q, rate: r }); }
+  if (!labor.length && !parts.length) { showToast('Add at least one line item', 'error'); return; }
+  try {
+    const inv = await api('/api/invoices/advanced', { method: 'POST', body: { job_id: currentTicketId, customer_id: j.customer_id, customer_name: j.customer_name, tech_id: j.tech_id, tech_name: j.tech_name, line_items: labor, parts_items: parts, tax_rate: parseFloat($('inv-tax')?.value) || 8.5, tech_commission_type: $('inv-comm-type')?.value || 'percentage', tech_commission_value: parseFloat($('inv-comm-val')?.value) || 0 }});
+    appData.invoices.unshift(inv); j.status = 'done'; j.invoice_id = inv.id;
+    closeModal(); loadTicket(currentTicketId); showToast('Invoice created!', 'success');
+    if (appData.settings?.auto_send_receipt === 'true') {
+      try { await api('/api/jobs/' + currentTicketId + '/auto-close-receipt', { method: 'POST' }); showToast('Receipt auto-sent!', 'success'); } catch(e) {}
+    }
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function openEditInvoiceModal(invId) {
+  const inv = appData.invoices.find(i => i.id === invId); if (!inv) return;
+  let ec = (inv.line_items || [{ desc: 'Labor', qty: 1, rate: 0 }]).length;
+  openModal('Edit Invoice — ' + invId, `
+    <div style="background:var(--bg);padding:8px 12px;border-radius:var(--radius);margin-bottom:12px;font-size:11px;color:var(--text3)">Changes are saved with edit history.</div>
+    <div id="ei-items-list">
+      ${(inv.line_items || [{ desc: 'Labor', qty: 1, rate: 0 }]).map((item, idx) => `<div class="form-row-3" style="margin-bottom:6px"><input class="form-input" placeholder="Description" id="ei${idx}-desc" value="${item.desc || ''}"/><input class="form-input" type="number" placeholder="Qty" id="ei${idx}-qty" value="${item.qty || 1}"/><input class="form-input" type="number" placeholder="Rate" id="ei${idx}-rate" value="${item.rate || 0}"/></div>`).join('')}
+    </div>
+    <button class="btn btn-sm" onclick="addEIRow()" style="margin-bottom:12px"><i class="ti ti-plus"></i> Add Line</button>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tax Rate (%)</label><input class="form-input" type="number" id="ei-tax" value="${inv.tax_rate || 8.5}"/></div>
+      <div class="form-group"><label class="form-label">Commission</label><div style="display:flex;gap:6px"><select class="form-input" id="ei-comm-type" style="width:70px"><option value="percentage" ${inv.tech_commission_type === 'percentage' ? 'selected' : ''}>%</option><option value="cash">$</option></select><input class="form-input" type="number" id="ei-comm-val" value="${inv.tech_commission_value || 0}"/></div></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-input" id="ei-notes" rows="2">${inv.notes || ''}</textarea></div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Save Changes', primary: true, fn: `confirmEditInvoice('${invId}')` }]
+  );
+  window._eiCount = () => ec;
+  window.addEIRow = () => { const r = document.createElement('div'); r.className = 'form-row-3'; r.style.marginBottom = '6px'; r.innerHTML = `<input class="form-input" placeholder="Description" id="ei${ec}-desc"/><input class="form-input" type="number" placeholder="Qty" id="ei${ec}-qty" value="1"/><input class="form-input" type="number" placeholder="Rate" id="ei${ec}-rate"/>`; $('ei-items-list').appendChild(r); ec++; };
+}
+
+async function confirmEditInvoice(invId) {
+  const items = []; for (let i = 0; i < window._eiCount(); i++) { const d = $('ei' + i + '-desc')?.value; const q = parseFloat($('ei' + i + '-qty')?.value) || 1; const r = parseFloat($('ei' + i + '-rate')?.value) || 0; if (d) items.push({ desc: d, qty: q, rate: r }); }
+  if (!items.length) { showToast('Add at least one item', 'error'); return; }
+  try {
+    const data = await api('/api/invoices/' + invId + '/edit', { method: 'PUT', body: { line_items: items, tax_rate: parseFloat($('ei-tax')?.value) || 8.5, tech_commission_type: $('ei-comm-type')?.value, tech_commission_value: parseFloat($('ei-comm-val')?.value) || 0, notes: $('ei-notes')?.value }});
+    const idx = appData.invoices.findIndex(i => i.id === invId); if (idx >= 0) appData.invoices[idx] = data;
+    closeModal(); if (currentPage === 'ticket') loadTicket(currentTicketId); showToast('Invoice updated!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function reopenJob(jobId) {
+  openModal('Reopen Job — ' + jobId, `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">This will reopen the job and set it back to In Progress.</div>
+    <div class="form-group"><label class="form-label">Reason</label><input class="form-input" id="reopen-reason" placeholder="e.g. Invoice error"/></div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Reopen', primary: true, fn: `confirmReopenJob('${jobId}')` }]
+  );
+}
+
+async function confirmReopenJob(jobId) {
+  try {
+    const data = await api('/api/jobs/' + jobId + '/reopen', { method: 'PUT', body: { reason: $('reopen-reason')?.value || 'Reopened' }});
+    const j = appData.jobs.find(x => x.id === jobId); if (j) { j.status = 'in-progress'; j.reopened_at = data.reopened_at; }
+    closeModal(); loadTicket(jobId); showToast('Job reopened!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+</script>
+<script>
+// ─── FINANCE PAGE ─────────────────────────────────────────────────────────────
+function renderFinance() {
+  const invoices = appData.invoices;
+  const today = new Date().toISOString().split('T')[0];
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const todayRev = invoices.filter(i => i.status === 'paid' && i.invoice_date === today).reduce((a, i) => a + (i.total || 0), 0);
+  const weekRev = invoices.filter(i => i.status === 'paid' && new Date(i.invoice_date) >= weekStart).reduce((a, i) => a + (i.total || 0), 0);
+  const monthRev = invoices.filter(i => i.status === 'paid' && new Date(i.invoice_date) >= monthStart).reduce((a, i) => a + (i.total || 0), 0);
+  const outstanding = invoices.filter(i => i.status === 'unpaid').reduce((a, i) => a + (i.total || 0), 0);
+  if ($('fin-today')) $('fin-today').textContent = fmt(todayRev);
+  if ($('fin-week')) $('fin-week').textContent = fmt(weekRev);
+  if ($('fin-month')) $('fin-month').textContent = fmt(monthRev);
+  if ($('fin-outstanding')) $('fin-outstanding').textContent = fmt(outstanding);
+  const tbody = $('finance-tbody'); if (!tbody) return;
+  tbody.innerHTML = invoices.map(inv => `<tr>
+    <td style="font-weight:600;color:var(--primary);font-size:11px">${inv.id}</td>
+    <td>${inv.customer_name || '—'}</td>
+    <td>${inv.tech_name || '—'}</td>
+    <td style="font-weight:600">${fmt(inv.total)}</td>
+    <td><span class="badge badge-${inv.status === 'paid' ? 'paid' : 'unpaid'}">${inv.status}</span></td>
+    <td style="font-size:11px;color:var(--text3)">${inv.invoice_date || ''}</td>
+    <td style="padding:8px 12px"><div style="display:flex;gap:4px">
+      ${inv.status === 'unpaid' ? `<button class="btn btn-sm btn-success" onclick="markPaid('${inv.id}');renderFinance()"><i class="ti ti-check"></i></button>` : ''}
+      ${currentUser?.role === 'admin' ? `<button class="btn btn-sm btn-icon" onclick="openEditInvoiceModal('${inv.id}')"><i class="ti ti-edit"></i></button>` : ''}
+    </div></td>
+  </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">No invoices yet</td></tr>';
+}
+
+// ─── REPORTS ──────────────────────────────────────────────────────────────────
+function renderReports() {
+  const period = $('report-period')?.value || 'week';
+  const techFilter = $('report-tech')?.value || '';
+  const techSel = $('report-tech');
+  if (techSel && techSel.options.length <= 1) {
+    appData.techs.filter(t => t.role === 'tech').forEach(t => { const o = document.createElement('option'); o.value = t.name; o.textContent = t.name; techSel.appendChild(o); });
+  }
+  const now = new Date(); let start;
+  if (period === 'week') { start = new Date(); start.setDate(start.getDate() - start.getDay()); }
+  else if (period === 'month') { start = new Date(now.getFullYear(), now.getMonth(), 1); }
+  else { start = new Date(0); }
+  let jobs = appData.jobs.filter(j => new Date(j.created_at) >= start);
+  if (techFilter) jobs = jobs.filter(j => j.tech_name === techFilter);
+  const done = jobs.filter(j => j.status === 'done').length;
+  const cancelled = jobs.filter(j => j.status === 'cancelled').length;
+  const invoices = appData.invoices.filter(i => new Date(i.created_at) >= start && i.status === 'paid');
+  const revenue = invoices.reduce((a, i) => a + (i.total || 0), 0);
+  const el = $('reports-content'); if (!el) return;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+      <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-briefcase"></i></div><div><div class="stat-label">Total Jobs</div><div class="stat-value">${jobs.length}</div></div></div>
+      <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-check"></i></div><div><div class="stat-label">Completed</div><div class="stat-value">${done}</div></div></div>
+      <div class="stat-card"><div class="stat-icon si-red"><i class="ti ti-x"></i></div><div><div class="stat-label">Cancelled</div><div class="stat-value">${cancelled}</div></div></div>
+      ${currentUser?.role === 'admin' ? `<div class="stat-card"><div class="stat-icon si-amber"><i class="ti ti-cash"></i></div><div><div class="stat-label">Revenue</div><div class="stat-value">${fmt(revenue)}</div></div></div>` : ''}
+    </div>
+    <div class="card"><div class="card-header"><i class="ti ti-table" style="color:var(--primary)"></i><span class="card-title">Job Breakdown</span></div>
+    <div class="card-body"><table class="jt" style="width:100%"><thead><tr><th>ID</th><th>Title</th><th>Customer</th><th>Tech</th><th>Status</th><th>Date</th>${currentUser?.role === 'admin' ? '<th>Amount</th>' : ''}</tr></thead><tbody>
+      ${jobs.slice(0, 50).map(j => { const inv = appData.invoices.find(i => i.id === j.invoice_id); return `<tr><td style="font-weight:600;color:var(--primary);font-size:11px">${j.id}</td><td style="font-size:11px">${j.title || j.job_type || '—'}</td><td style="font-size:11px">${j.customer_name || '—'}</td><td>${techAv(j.tech_name)}</td><td>${statusBadge(j.status)}</td><td style="font-size:11px;color:var(--text3)">${j.job_date || ''}</td>${currentUser?.role === 'admin' ? `<td>${inv ? fmt(inv.total) : '—'}</td>` : ''}</tr>`; }).join('')}
+    </tbody></table></div></div>`;
+}
+
+function exportReport() {
+  const rows = [['ID','Title','Customer','Tech','Status','Date']];
+  appData.jobs.forEach(j => rows.push([j.id, j.title || j.job_type, j.customer_name, j.tech_name, j.status, j.job_date]));
+  const csv = rows.map(r => r.map(c => '"' + (c || '') + '"').join(',')).join('\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); a.download = 'report.csv'; a.click();
+}
+
+// ─── BOOKING ──────────────────────────────────────────────────────────────────
+async function renderBookingPage() {
+  const link = window.location.origin + '/booking';
+  if ($('booking-link-display')) $('booking-link-display').textContent = link;
+  try {
+    const bookings = await api('/api/bookings');
+    appData.bookings = bookings;
+    const today = new Date().toDateString();
+    const pending = bookings.filter(b => b.status === 'pending');
+    if ($('bk-pending')) $('bk-pending').textContent = pending.length;
+    if ($('bk-today')) $('bk-today').textContent = bookings.filter(b => b.scheduled_time && new Date(b.scheduled_time).toDateString() === today).length;
+    if ($('bk-confirmed')) $('bk-confirmed').textContent = bookings.filter(b => b.status === 'confirmed').length;
+    if ($('bk-week')) { const w = new Date(); w.setDate(w.getDate() + 7); $('bk-week').textContent = bookings.filter(b => b.scheduled_time && new Date(b.scheduled_time) <= w && new Date(b.scheduled_time) >= new Date()).length; }
+    const tbody = $('bk-requests-tbody'); if (!tbody) return;
+    tbody.innerHTML = bookings.map(b => `<tr>
+      <td style="font-size:11px;color:var(--text3)">${new Date(b.created_at).toLocaleString()}</td>
+      <td style="font-weight:500">${b.customer_name}</td>
+      <td style="font-size:11px">${b.phone}</td>
+      <td style="font-size:11px">${b.job_type || '—'}</td>
+      <td><span class="badge badge-new">${b.type || 'request'}</span></td>
+      <td><span class="badge badge-${b.status === 'confirmed' ? 'done' : b.status === 'cancelled' ? 'cancelled' : 'pending'}">${b.status}</span></td>
+      <td style="padding:8px 12px;display:flex;gap:4px">
+        ${b.status === 'pending' ? `<button class="btn btn-sm btn-primary" onclick="openConfirmBookingModal('${b.id}')"><i class="ti ti-check"></i> Confirm</button>` : ''}
+        <button class="btn btn-sm btn-icon" onclick="openBookingDetailModal('${b.id}')"><i class="ti ti-eye"></i></button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">No bookings yet</td></tr>';
+  } catch(e) { console.error(e); }
+}
+
+function copyBookingLink() { navigator.clipboard.writeText(window.location.origin + '/booking'); showToast('Link copied!', 'success'); }
+
+function openBookingLinkModal() {
+  openModal('Booking Page', `<div style="text-align:center;padding:10px 0"><div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:12px;font-size:13px;font-weight:600;color:var(--primary);word-break:break-all">${window.location.origin}/booking</div><p style="font-size:12px;color:var(--text3);margin-bottom:14px">Share this with customers. All submissions notify you instantly.</p><button class="btn btn-primary" onclick="copyBookingLink();closeModal()"><i class="ti ti-copy"></i> Copy</button></div>`,
+    [{ label: 'Close', primary: true, fn: 'closeModal()' }]
+  );
+}
+
+function switchBookingTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active');
+  $('bk-tab-requests').style.display = tab === 'requests' ? 'block' : 'none';
+  $('bk-tab-scheduled').style.display = tab === 'scheduled' ? 'block' : 'none';
+  if (tab === 'scheduled') {
+    const tbody = $('bk-scheduled-tbody'); if (!tbody) return;
+    const jobs = appData.jobs.filter(j => j.scheduled_date).sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
+    tbody.innerHTML = jobs.map(j => `<tr style="cursor:pointer" onclick="openTicket('${j.id}')"><td style="font-weight:500">${new Date(j.scheduled_date).toLocaleString()}</td><td>${j.customer_name || '—'}</td><td style="font-size:11px">${j.phone || '—'}</td><td>${j.job_type || j.title || '—'}</td><td style="font-weight:600;color:var(--primary)">${j.id}</td><td>${techAv(j.tech_name)}</td><td>${statusBadge(j.status)}</td></tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">None</td></tr>';
+  }
+}
+
+function openConfirmBookingModal(bookingId) {
+  const b = appData.bookings.find(x => x.id === bookingId); if (!b) return;
+  openModal('Confirm — ' + b.customer_name, `
+    <div style="background:var(--bg);padding:10px 12px;border-radius:var(--radius);margin-bottom:12px;font-size:12px"><strong>${b.customer_name}</strong> · ${b.phone}<div style="color:var(--text3)">${b.job_type || 'Service'} · ${b.address || ''}</div></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Assign Tech</label><select class="form-input" id="bc-tech"><option value="">Unassigned</option>${appData.techs.filter(t => t.role === 'tech').map(t => `<option value="${t.id}" data-name="${t.name}">${t.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Scheduled Time</label><input type="datetime-local" class="form-input" id="bc-time" value="${b.scheduled_time ? new Date(b.scheduled_time).toISOString().slice(0,16) : ''}"/></div>
+    </div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: 'Confirm & Create Job', primary: true, fn: `confirmBooking('${bookingId}')` }]
+  );
+}
+
+async function confirmBooking(bookingId) {
+  const techSel = $('bc-tech'); const timeEl = $('bc-time');
+  const opt = techSel?.options[techSel.selectedIndex];
+  try {
+    const result = await api('/api/bookings/' + bookingId + '/confirm', { method: 'PUT', body: { tech_id: techSel?.value || null, tech_name: techSel?.value ? (opt?.dataset?.name || null) : null, scheduled_time: timeEl?.value ? new Date(timeEl.value).toISOString() : null }});
+    const b = appData.bookings.find(x => x.id === bookingId); if (b) b.status = 'confirmed';
+    if (result.job) appData.jobs.unshift(result.job);
+    closeModal(); renderBookingPage(); showToast('Confirmed! Job ' + result.job_id + ' created.', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function openBookingDetailModal(bookingId) {
+  const b = appData.bookings.find(x => x.id === bookingId); if (!b) return;
+  openModal('Booking Detail', `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div class="form-label">Customer</div><div style="font-size:13px;font-weight:500">${b.customer_name}</div></div><div><div class="form-label">Phone</div><div style="font-size:13px">${b.phone}</div></div><div><div class="form-label">Service</div><div style="font-size:13px">${b.job_type || '—'}</div></div><div><div class="form-label">Status</div>${statusBadge(b.status)}</div></div>${b.notes ? `<div class="form-group" style="margin-top:12px"><label class="form-label">Notes</label><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:var(--radius)">${b.notes}</div></div>` : ''}`,
+    [{ label: 'Close', primary: true, fn: 'closeModal()' }]
+  );
+}
+</script>
+<script>
+// ─── WORKFLOWS ────────────────────────────────────────────────────────────────
+const WF_TRIGGERS = { new_job:'New job created', job_assigned:'Job assigned to tech', status_change:'Job status changes', payment_received:'Payment received', new_booking:'New booking submitted', schedule:'Scheduled (daily/weekly)' };
+const WF_ACTIONS = { send_sms:'Send SMS', send_whatsapp:'Send WhatsApp', create_notification:'CRM Notification', update_status:'Update status', assign_tag:'Add tag', webhook_post:'Webhook POST', send_report:'Send report' };
+
+async function renderWorkflowsPage() {
+  try {
+    const wfs = await api('/api/workflows');
+    appData.workflows = wfs;
+    const list = $('workflows-list'); if (!list) return;
+    list.innerHTML = wfs.length ? wfs.map(wf => `
+      <div class="card" style="margin-bottom:10px">
+        <div style="padding:12px 16px;display:flex;align-items:center;gap:12px">
+          <div class="toggle ${wf.active ? 'on' : ''}" onclick="toggleWorkflow('${wf.id}',this)"></div>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">${wf.name}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+              <span style="background:var(--primary-light);color:var(--primary);padding:1px 6px;border-radius:10px;font-size:10px;font-weight:500">WHEN</span>
+              ${WF_TRIGGERS[wf.trigger_event || wf.trigger_type] || wf.trigger_event || '—'}
+              <span style="background:#f0fdf4;color:var(--success);padding:1px 6px;border-radius:10px;font-size:10px;font-weight:500">THEN</span>
+              ${(wf.actions || []).map(a => WF_ACTIONS[a.type] || a.type).join(', ')}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+            <span style="font-size:10px;color:var(--text3)">${wf.run_count || 0}x</span>
+            <button class="btn btn-sm" onclick="testWorkflow('${wf.id}')"><i class="ti ti-player-play"></i> Test</button>
+            <button class="btn btn-sm btn-icon" onclick="openNewWorkflowModal('${wf.id}')"><i class="ti ti-edit"></i></button>
+            <button class="btn btn-sm btn-icon" style="color:var(--danger)" onclick="deleteWorkflow('${wf.id}')"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>
+      </div>`).join('') : '<div class="empty-state"><i class="ti ti-topology-star-3"></i><p style="font-size:12px">No workflows yet. Create your first one.</p></div>';
+  } catch(e) { console.error(e); }
+}
+
+function openNewWorkflowModal(editId) {
+  const wf = editId ? appData.workflows.find(w => w.id === editId) : null;
+  const act = wf?.actions?.[0] || { type: 'send_sms', to: 'customer', message: '' };
+  openModal((wf ? 'Edit' : 'New') + ' Workflow', `
+    <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="wf-name" value="${wf?.name || ''}"/></div>
+    <div style="background:#eff6ff;border-radius:var(--radius-lg);padding:13px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px">WHEN — Trigger</div>
+      <div class="form-group"><label class="form-label">Event</label><select class="form-input" id="wf-trigger" onchange="wfHandleTrigger(this.value)">${Object.entries(WF_TRIGGERS).map(([k,v]) => `<option value="${k}" ${(wf?.trigger_event || wf?.trigger_type) === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div id="wf-sched-wrap" style="display:none"><div class="form-group"><label class="form-label">Schedule</label><select class="form-input" id="wf-schedule"><option value="daily_8am">Daily at 8 AM</option><option value="daily_6pm">Daily at 6 PM</option><option value="weekly_monday">Weekly (Monday)</option><option value="hourly">Every Hour</option></select></div></div>
+      <div id="wf-cond-wrap"><div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">IF Condition (optional)</div><div class="form-row"><div class="form-group"><label class="form-label">Field</label><input class="form-input" id="wf-cond-field" placeholder="e.g. job_type" value="${wf?.trigger_condition?.field || ''}"/></div><div class="form-group"><label class="form-label">Value</label><input class="form-input" id="wf-cond-val" placeholder="e.g. Car Lockout" value="${wf?.trigger_condition?.value || ''}"/></div></div></div>
+    </div>
+    <div style="background:#f0fdf4;border-radius:var(--radius-lg);padding:13px">
+      <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:8px">THEN — Action</div>
+      <div class="form-group"><label class="form-label">Action</label><select class="form-input" id="wf-action-type" onchange="wfHandleAction(this.value)">${Object.entries(WF_ACTIONS).map(([k,v]) => `<option value="${k}" ${act.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div id="wf-to-wrap" class="form-group"><label class="form-label">Send To</label><select class="form-input" id="wf-to"><option value="customer" ${act.to === 'customer' ? 'selected' : ''}>Customer</option><option value="tech" ${act.to === 'tech' ? 'selected' : ''}>Assigned Tech</option></select></div>
+      <div id="wf-msg-wrap" class="form-group"><label class="form-label">Message <span style="font-size:10px;color:var(--text3)">{customer_name} {job_id} {job_type} {address} {tech_name}</span></label><textarea class="form-input" id="wf-msg" rows="3">${act.message || ''}</textarea></div>
+      <div id="wf-url-wrap" class="form-group" style="display:none"><label class="form-label">Webhook URL</label><input class="form-input" id="wf-url" value="${act.url || ''}" placeholder="https://..."/></div>
+      <div id="wf-status-wrap" class="form-group" style="display:none"><label class="form-label">New Status</label><select class="form-input" id="wf-status"><option value="new">New</option><option value="assigned">Assigned</option><option value="in-progress">In Progress</option><option value="done">Done</option><option value="cancelled">Cancelled</option></select></div>
+      <div id="wf-tag-wrap" class="form-group" style="display:none"><label class="form-label">Tag</label><input class="form-input" id="wf-tag" value="${act.tag || ''}"/></div>
+    </div>`,
+    [{ label: 'Cancel', fn: 'closeModal()' }, { label: wf ? 'Save' : 'Create', primary: true, fn: `confirmWorkflow('${editId || ''}')` }]
+  );
+  wfHandleAction(act.type);
+  wfHandleTrigger(wf?.trigger_event || wf?.trigger_type || 'new_job');
+}
+
+function wfHandleTrigger(v) {
+  const sw = $('wf-sched-wrap'); const cw = $('wf-cond-wrap');
+  if (sw) sw.style.display = v === 'schedule' ? 'block' : 'none';
+  if (cw) cw.style.display = v === 'schedule' ? 'none' : 'block';
+}
+function wfHandleAction(v) {
+  const isMsg = ['send_sms','send_whatsapp','create_notification','send_report'].includes(v);
+  if ($('wf-to-wrap')) $('wf-to-wrap').style.display = isMsg ? 'block' : 'none';
+  if ($('wf-msg-wrap')) $('wf-msg-wrap').style.display = isMsg ? 'block' : 'none';
+  if ($('wf-url-wrap')) $('wf-url-wrap').style.display = v === 'webhook_post' ? 'block' : 'none';
+  if ($('wf-status-wrap')) $('wf-status-wrap').style.display = v === 'update_status' ? 'block' : 'none';
+  if ($('wf-tag-wrap')) $('wf-tag-wrap').style.display = v === 'assign_tag' ? 'block' : 'none';
+}
+
+async function confirmWorkflow(editId) {
+  const name = $('wf-name')?.value; if (!name) { showToast('Name required', 'error'); return; }
+  const tv = $('wf-trigger')?.value; const isSchedule = tv === 'schedule';
+  const at = $('wf-action-type')?.value; const action = { type: at };
+  if (['send_sms','send_whatsapp','create_notification','send_report'].includes(at)) { action.to = $('wf-to')?.value || 'customer'; action.message = $('wf-msg')?.value || ''; }
+  if (at === 'webhook_post') action.url = $('wf-url')?.value;
+  if (at === 'update_status') action.status = $('wf-status')?.value;
+  if (at === 'assign_tag') action.tag = $('wf-tag')?.value;
+  const cf = $('wf-cond-field')?.value; const cv = $('wf-cond-val')?.value;
+  const body = { name, trigger_type: isSchedule ? 'schedule' : 'event', trigger_event: isSchedule ? null : tv, trigger_schedule: isSchedule ? $('wf-schedule')?.value : null, trigger_condition: cf && cv ? { field: cf, operator: 'equals', value: cv } : {}, actions: [action] };
+  try {
+    if (editId) await api('/api/workflows/' + editId, { method: 'PUT', body });
+    else await api('/api/workflows', { method: 'POST', body });
+    closeModal(); renderWorkflowsPage(); showToast('Workflow saved!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function toggleWorkflow(id, el) { el.classList.toggle('on'); const active = el.classList.contains('on'); try { await api('/api/workflows/' + id, { method: 'PUT', body: { active }}); } catch(e) { showToast(e.message, 'error'); } }
+async function deleteWorkflow(id) { if (!confirm('Delete?')) return; try { await api('/api/workflows/' + id, { method: 'DELETE' }); appData.workflows = appData.workflows.filter(w => w.id !== id); renderWorkflowsPage(); } catch(e) { showToast(e.message, 'error'); } }
+async function testWorkflow(id) { try { const r = await api('/api/workflows/' + id + '/test', { method: 'POST', body: {}}); showToast('Test complete: ' + r.result?.map(x => x.action + ':' + x.status).join(', '), 'success'); } catch(e) { showToast(e.message, 'error'); } }
+
+// ─── AI ASSISTANT ─────────────────────────────────────────────────────────────
+async function renderAIPage() {
+  try {
+    const history = await api('/api/ai-chat');
+    const el = $('ai-messages'); if (!el || !history.length) return;
+    el.innerHTML = history.map(h => aiMsgHTML(h.role, h.content, h.actions_taken)).join('');
+    el.scrollTop = el.scrollHeight;
+  } catch(e) {}
+}
+
+function aiMsgHTML(role, content, actions) {
+  const isUser = role === 'user';
+  const clean = content.replace(/\[ACTION:[^\]]+\][^\n]*/g, '').trim();
+  return `<div style="display:flex;flex-direction:column;align-items:${isUser ? 'flex-end' : 'flex-start'};max-width:85%;${isUser ? 'align-self:flex-end' : 'align-self:flex-start'}">
+    <div style="background:${isUser ? 'var(--primary)' : 'var(--surface)'};color:${isUser ? '#fff' : 'var(--text)'};border:${isUser ? 'none' : '1px solid var(--border)'};padding:9px 13px;border-radius:12px;${isUser ? 'border-bottom-right-radius:3px' : 'border-bottom-left-radius:3px'};font-size:12px;line-height:1.6;white-space:pre-wrap">${clean}</div>
+    ${actions?.length ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${actions.map(a => `<span style="background:#f0fdf4;color:var(--success);border:1px solid #bbf7d0;padding:1px 7px;border-radius:10px;font-size:10px">✓ ${a}</span>`).join('')}</div>` : ''}
+  </div>`;
+}
+
+function setAIPrompt(text) { const inp = $('ai-input'); if (inp) { inp.value = text; inp.focus(); } }
+
+async function sendAIMessage() {
+  const inp = $('ai-input'); if (!inp || aiTyping) return;
+  const msg = inp.value.trim(); if (!msg) return;
+  inp.value = ''; aiTyping = true;
+  const btn = $('ai-send-btn'); if (btn) btn.innerHTML = '<div class="spinner"></div>';
+  const msgEl = $('ai-messages');
+  const userDiv = document.createElement('div');
+  userDiv.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;align-self:flex-end;max-width:85%';
+  userDiv.innerHTML = `<div style="background:var(--primary);color:#fff;padding:9px 13px;border-radius:12px;border-bottom-right-radius:3px;font-size:12px;line-height:1.6">${msg}</div>`;
+  msgEl.appendChild(userDiv);
+  const typingDiv = document.createElement('div');
+  typingDiv.id = 'ai-typing'; typingDiv.style.cssText = 'align-self:flex-start;max-width:85%';
+  typingDiv.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);padding:9px 13px;border-radius:12px;border-bottom-left-radius:3px;font-size:12px;color:var(--text3)">Thinking...</div>';
+  msgEl.appendChild(typingDiv); msgEl.scrollTop = msgEl.scrollHeight;
+  try {
+    const r = await api('/api/ai-assistant', { method: 'POST', body: { message: msg }});
+    typingDiv.remove();
+    const aiDiv = document.createElement('div');
+    aiDiv.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start;align-self:flex-start;max-width:85%';
+    aiDiv.innerHTML = aiMsgHTML('assistant', r.reply, r.actions_taken);
+    msgEl.appendChild(aiDiv); msgEl.scrollTop = msgEl.scrollHeight;
+    if (r.actions_taken?.length) await loadAllData();
+  } catch(e) {
+    typingDiv.remove();
+    const errDiv = document.createElement('div');
+    errDiv.innerHTML = `<div style="background:#fef2f2;color:var(--danger);border:1px solid #fecaca;padding:9px 13px;border-radius:12px;font-size:12px">Error: ${e.message}</div>`;
+    msgEl.appendChild(errDiv);
+  }
+  aiTyping = false; if (btn) btn.innerHTML = '<i class="ti ti-send"></i>';
+}
+
+async function clearAIChat() {
+  if (!confirm('Clear chat history?')) return;
+  try { await api('/api/ai-chat/clear', { method: 'POST' }); const m = $('ai-messages'); if (m) m.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:12px">Cleared.</div>'; } catch(e) {}
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+function toggleNotifDrawer() { $('notif-drawer').classList.toggle('open'); renderNotifDrawer(); }
+function renderNotifDrawer() {
+  const list = $('notif-list'); if (!list) return;
+  list.innerHTML = (appData.notifications || []).slice(0, 20).map(n => `
+    <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:8px;${!n.read ? 'background:#f0f7ff;' : ''}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${!n.read ? 'var(--primary)' : 'transparent'};margin-top:4px;flex-shrink:0"></div>
+      <div><div style="font-size:12px;font-weight:500">${n.title || 'Notification'}</div><div style="font-size:11px;color:var(--text3)">${n.body || ''}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">${new Date(n.created_at).toLocaleString()}</div></div>
+    </div>`).join('') || '<div style="padding:16px;text-align:center;font-size:12px;color:var(--text3)">No notifications</div>';
+}
+
+async function markAllRead() {
+  try { await api('/api/notifications/read-all', { method: 'PUT' }); appData.notifications.forEach(n => n.read = true); updateNotifBadge(); renderNotifDrawer(); } catch(e) {}
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+function renderSettings() { switchSettingsTab('business', document.querySelector('.settings-nav-item')); }
+
+function switchSettingsTab(tab, el) {
+  document.querySelectorAll('.settings-nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const c = $('settings-content'); if (!c) return;
+  const s = appData.settings || {};
+  if (tab === 'business') {
+    c.innerHTML = `<div style="font-size:14px;font-weight:600;margin-bottom:14px">Business Information</div>
+    <div class="settings-card">
+      <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="s-bizname" value="${s.business_name || 'Express Lock&Key'}" oninput="updateLogoText(this.value)"/></div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="s-bizphone" value="${s.business_phone || ''}"/></div>
+      <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="s-bizaddr" value="${s.business_address || ''}"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="s-bizemail" value="${s.business_email || ''}"/></div>
+      <button class="btn btn-primary" onclick="saveBusinessSettings()"><i class="ti ti-device-floppy"></i> Save</button>
+    </div>`;
+  } else if (tab === 'finance') {
+    c.innerHTML = `<div style="font-size:14px;font-weight:600;margin-bottom:14px">Finance & Invoices</div>
+    <div class="settings-card">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tax Rate (%)</label><input class="form-input" type="number" id="s-tax" value="${s.tax_rate || 8.5}" step="0.1"/></div>
+        <div class="form-group"><label class="form-label">Invoice Prefix</label><input class="form-input" id="s-invpfx" value="${s.invoice_prefix || 'INV'}"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Invoice Footer</label><textarea class="form-input" id="s-invfoot">${s.invoice_footer || ''}</textarea></div>
+      <div class="divider">Auto Receipt</div>
+      <div class="settings-row"><div><div class="settings-row-label">Auto-send receipt on job close</div><div class="settings-row-desc">Sends receipt + review link automatically</div></div><div class="toggle ${s.auto_send_receipt === 'true' ? 'on' : ''}" onclick="this.classList.toggle('on');api('/api/settings',{method:'PUT',body:{auto_send_receipt:this.classList.contains('on')?'true':'false'}})"></div></div>
+      <div class="form-group" style="margin-top:12px"><label class="form-label">Google Review Link</label><input class="form-input" id="s-review" value="${s.review_link || ''}" placeholder="https://g.page/r/..."/></div>
+      <button class="btn btn-primary" onclick="saveFinanceSettings()"><i class="ti ti-device-floppy"></i> Save</button>
+    </div>`;
+  } else if (tab === 'statuses') {
+    const labels = appData.statusLabels || ['new','assigned','in-progress','done','cancelled'];
+    c.innerHTML = `<div style="font-size:14px;font-weight:600;margin-bottom:14px">Job Status Labels</div>
+    <div class="settings-card">
+      ${labels.map((s, i) => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input class="form-input" style="flex:1" value="${s}" id="sl-${i}" onchange="appData.statusLabels[${i}]=this.value"/><button class="btn btn-sm btn-icon" style="color:var(--danger)" onclick="removeStatusLabel(${i})"><i class="ti ti-trash"></i></button></div>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input class="form-input" id="new-status-input" placeholder="New status label..." style="flex:1"/>
+      <button class="btn btn-primary btn-sm" onclick="addStatusLabel()"><i class="ti ti-plus"></i> Add</button>
+    </div>
+    <button class="btn btn-primary" style="margin-top:12px" onclick="saveStatusLabels()"><i class="ti ti-device-floppy"></i> Save</button>`;
+  } else if (tab === 'google') {
+    c.innerHTML = `<div style="font-size:14px;font-weight:600;margin-bottom:14px">Google Integration</div>
+    <div class="settings-card">
+      <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--text2)">Google Maps</div>
+      <div class="form-group"><label class="form-label">Maps API Key</label><input class="form-input" id="g-maps-key" value="${s.google_maps_api_key || ''}" placeholder="AIzaSy..."/></div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Get at console.cloud.google.com → Enable "Places API" → Create API Key</div>
+      <button class="btn btn-primary btn-sm" onclick="api('/api/settings',{method:'PUT',body:{google_maps_api_key:$('g-maps-key').value}}).then(()=>showToast('Saved!','success')).catch(e=>showToast(e.message,'error'))"><i class="ti ti-device-floppy"></i> Save Maps Key</button>
+    </div>
+    <div class="settings-card">
+      <div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--text2)">Google Calendar Sync</div>
+      <div class="settings-row"><div><div class="settings-row-label">Enable Calendar Sync</div></div><div class="toggle ${s.google_calendar_enabled === 'true' ? 'on' : ''}" onclick="this.classList.toggle('on');api('/api/settings',{method:'PUT',body:{google_calendar_enabled:this.classList.contains('on')?'true':'false'}})"></div></div>
+      <div class="form-group" style="margin-top:12px"><label class="form-label">Calendar ID</label><input class="form-input" id="g-cal-id" value="${s.google_calendar_id || ''}" placeholder="your@gmail.com"/></div>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="api('/api/settings',{method:'PUT',body:{google_calendar_id:$('g-cal-id').value}}).then(()=>showToast('Saved!','success'))"><i class="ti ti-device-floppy"></i> Save</button>
+    </div>`;
+  } else if (tab === 'booking_settings') {
+    c.innerHTML = `<div style="font-size:14px;font-weight:600;margin-bottom:14px">Booking Page Settings</div>
+    <div class="settings-card">
+      <div class="form-group"><label class="form-label">Page Title</label><input class="form-input" id="bk-title" value="${s.booking_page_title || 'Book a Service'}"/></div>
+      <div class="form-group"><label class="form-label">Subtitle</label><input class="form-input" id="bk-sub" value="${s.booking_page_subtitle || 'Fast & reliable locksmith services'}"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Hours Start</label><input type="time" class="form-input" id="bk-start" value="${s.booking_business_hours_start || '08:00'}"/></div>
+        <div class="form-group"><label class="form-label">Hours End</label><input type="time" class="form-input" id="bk-end" value="${s.booking_business_hours_end || '20:00'}"/></div>
+      </div>
+      <button class="btn btn-primary" onclick="api('/api/settings',{method:'PUT',body:{booking_page_title:$('bk-title').value,booking_page_subtitle:$('bk-sub').value,booking_business_hours_start:$('bk-start').value,booking_business_hours_end:$('bk-end').value}}).then(()=>showToast('Saved!','success'))"><i class="ti ti-device-floppy"></i> Save</button>
+    </div>`;
+  } else if (tab === 'users') {
+    c.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div style="font-size:14px;font-weight:600">Users</div><button class="btn btn-primary btn-sm" onclick="openAddTechModal()"><i class="ti ti-plus"></i> Add User</button></div>
+    <div class="settings-card">
+      <table class="jt" style="width:100%"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Masking</th><th></th></tr></thead><tbody>
+      ${(appData.allUsers || []).map(u => `<tr><td style="font-weight:500">${u.name}</td><td style="font-size:11px;color:var(--text3)">${u.email}</td><td>${u.role}</td><td style="font-size:11px">${u.use_masking !== false ? 'EXT' : 'Direct'}</td><td style="padding:8px 12px">${u.role === 'tech' ? `<button class="btn btn-sm btn-icon" onclick="openTechCallSettings('${u.id}')"><i class="ti ti-settings"></i></button>` : ''}</td></tr>`).join('')}
+      </tbody></table>
+    </div>`;
+  } else if (tab === 'notifications') {
+    c.innerHTML = `<div style="font-size:14px;font-weight:600;margin-bottom:14px">Notifications</div>
+    <div class="settings-card">
+      <div class="form-group"><label class="form-label">Admin Phone (for SMS reports)</label><input class="form-input" id="s-adminphone" value="${s.admin_phone || ''}" placeholder="+1 305 555 0000"/></div>
+      <button class="btn btn-primary" onclick="api('/api/settings',{method:'PUT',body:{admin_phone:$('s-adminphone').value}}).then(()=>showToast('Saved!','success'))"><i class="ti ti-device-floppy"></i> Save</button>
+    </div>`;
+  } else if (tab === 'password') {
+    c.innerHTML = `<div style="font-size:14px;font-weight:600;margin-bottom:14px">Change Password</div>
+    <div class="settings-card">
+      <div class="form-group"><label class="form-label">Current Password</label><input class="form-input" type="password" id="pw-curr"/></div>
+      <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="pw-new"/></div>
+      <div class="form-group"><label class="form-label">Confirm New Password</label><input class="form-input" type="password" id="pw-conf"/></div>
+      <button class="btn btn-primary" onclick="changePassword()"><i class="ti ti-lock"></i> Change Password</button>
+    </div>`;
+  }
+}
+
+async function saveBusinessSettings() {
+  try {
+    await api('/api/settings', { method: 'PUT', body: { business_name: $('s-bizname')?.value, business_phone: $('s-bizphone')?.value, business_address: $('s-bizaddr')?.value, business_email: $('s-bizemail')?.value }});
+    if ($('s-bizname')?.value) updateLogoText($('s-bizname').value);
+    showToast('Business settings saved!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function saveFinanceSettings() {
+  try {
+    await api('/api/settings', { method: 'PUT', body: { tax_rate: $('s-tax')?.value, invoice_prefix: $('s-invpfx')?.value, invoice_footer: $('s-invfoot')?.value, review_link: $('s-review')?.value }});
+    if ($('s-review')?.value) appData.settings.review_link = $('s-review').value;
+    showToast('Finance settings saved!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function changePassword() {
+  const curr = $('pw-curr')?.value; const nw = $('pw-new')?.value; const conf = $('pw-conf')?.value;
+  if (!curr || !nw) { showToast('All fields required', 'error'); return; }
+  if (nw !== conf) { showToast('Passwords do not match', 'error'); return; }
+  try { await api('/api/auth/change-password', { method: 'PUT', body: { currentPassword: curr, newPassword: nw }}); showToast('Password changed!', 'success'); } catch(e) { showToast(e.message, 'error'); }
+}
+
+function addStatusLabel() {
+  const inp = $('new-status-input'); if (!inp || !inp.value.trim()) { showToast('Enter a label', 'error'); return; }
+  const val = inp.value.trim().toLowerCase().replace(/\s+/g, '-');
+  if (appData.statusLabels.includes(val)) { showToast('Already exists', 'error'); return; }
+  appData.statusLabels.push(val); inp.value = '';
+  switchSettingsTab('statuses', document.querySelector('.settings-nav-item.active'));
+}
+
+function removeStatusLabel(idx) {
+  const label = appData.statusLabels[idx];
+  if (['new','done'].includes(label)) { showToast('Cannot remove core status: ' + label, 'error'); return; }
+  appData.statusLabels.splice(idx, 1);
+  switchSettingsTab('statuses', document.querySelector('.settings-nav-item.active'));
+}
+
+async function saveStatusLabels() {
+  try { await api('/api/status-labels', { method: 'PUT', body: { labels: appData.statusLabels }}); showToast('Status labels saved!', 'success'); } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+(function boot() {
+  if (token && currentUser) {
+    $('login-page').style.display = 'none';
+    const appEl = $('app');
+    appEl.style.display = 'flex';
+    appEl.style.flexDirection = 'row';
+    initApp();
+  } else {
+    $('login-page').style.display = 'flex';
+    $('app').style.display = 'none';
+  }
+})();
+</script>
+</body>
+</html>
