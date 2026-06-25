@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Express Lock&Key</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1a202c;line-height:1.7}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+  h1{font-size:26px;margin-bottom:6px}
+  .updated{color:#718096;font-size:13px;margin-bottom:32px}
+  h2{font-size:18px;margin:32px 0 10px;color:#1e6fff}
+  p{margin-bottom:14px;font-size:14px;color:#2d3748}
+  ul{margin:0 0 14px 22px;font-size:14px;color:#2d3748}
+  li{margin-bottom:6px}
+  .card{background:#fff;border-radius:14px;padding:32px 36px;box-shadow:0 4px 20px rgba(0,0,0,0.05)}
+  .highlight{background:#eff6ff;border-left:3px solid #1e6fff;padding:14px 16px;border-radius:8px;margin:18px 0;font-size:14px}
+  a{color:#1e6fff}
+  footer{margin-top:30px;font-size:12px;color:#a0aec0;text-align:center}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1 id="biz-title">Express Lock&Key — Privacy Policy</h1>
+      <div class="updated">Last updated: <span id="updated-date"></span></div>
+
+      <p>This Privacy Policy explains how <strong id="biz-name-1">Express Lock&Key</strong> ("we," "us," or "our") collects, uses, and protects your personal information, including information collected through SMS text messaging.</p>
+
+      <h2>Information We Collect</h2>
+      <p>When you contact us for service, book an appointment, or otherwise interact with our business, we may collect:</p>
+      <ul>
+        <li>Your name, phone number, and service address</li>
+        <li>Details about the service you've requested</li>
+        <li>Records of communications between you and our business, including SMS messages</li>
+      </ul>
+
+      <h2>How We Use Your Information</h2>
+      <p>We use your information to schedule and provide service, send appointment confirmations and updates, send invoices and receipts, and respond to your requests for help or information.</p>
+
+      <h2>SMS / Text Messaging</h2>
+      <p>If you provide your mobile phone number, you may receive SMS text messages from us related to your service appointments, job updates, and receipts.</p>
+      <ul>
+        <li>Message frequency varies based on your service activity.</li>
+        <li>Message and data rates may apply, depending on your mobile carrier and plan.</li>
+        <li>You can opt out of SMS messages at any time by replying <strong>STOP</strong> to any message.</li>
+        <li>You can subscribe to SMS updates by replying <strong>JOIN</strong> when invited.</li>
+      </ul>
+      <div class="highlight">
+        <strong>No mobile information will be shared with third parties or affiliates for marketing or promotional purposes at any time.</strong> Text messaging originator opt-in data and consent will not be shared with any third parties, except as required to provide the SMS service itself (for example, our messaging platform provider, used solely to deliver messages on our behalf).
+      </div>
+
+      <h2>How We Share Information</h2>
+      <p>We do not sell, rent, or share your personal information with third parties for marketing purposes. We may share information with service providers who help us operate our business (such as our messaging and scheduling platform providers), solely for the purpose of providing our services to you.</p>
+
+      <h2>Data Retention</h2>
+      <p>We retain your information for as long as necessary to provide our services and maintain accurate business records, or as required by law.</p>
+
+      <h2>Your Choices</h2>
+      <p>You may opt out of SMS communications at any time by replying STOP to any message. You may also contact us directly using the information below to request that we update, correct, or delete your information.</p>
+
+      <h2>Contact Us</h2>
+      <p>If you have questions about this Privacy Policy or how your information is handled, contact us:</p>
+      <p id="contact-info">Phone: <span id="biz-phone">—</span><br>Email: <span id="biz-email">—</span></p>
+
+      <h2>Changes to This Policy</h2>
+      <p>We may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated revision date.</p>
+    </div>
+    <footer id="biz-name-2">Express Lock&Key</footer>
+  </div>
+
+<script>
+document.getElementById('updated-date').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+fetch('/api/config/business-info').then(r => r.json()).then(d => {
+  const name = d.name || 'Express Lock&Key';
+  document.getElementById('biz-title').textContent = name + ' — Privacy Policy';
+  document.getElementById('biz-name-1').textContent = name;
+  document.getElementById('biz-name-2').textContent = name;
+  document.title = 'Privacy Policy — ' + name;
+  if (d.phone) document.getElementById('biz-phone').textContent = d.phone;
+  if (d.email) document.getElementById('biz-email').textContent = d.email;
+}).catch(() => {});
+</script>
+</body>
+</html>

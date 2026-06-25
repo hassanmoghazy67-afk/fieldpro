@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service — Express Lock&Key</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1a202c;line-height:1.7}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+  h1{font-size:26px;margin-bottom:6px}
+  .updated{color:#718096;font-size:13px;margin-bottom:32px}
+  h2{font-size:18px;margin:32px 0 10px;color:#1e6fff}
+  p{margin-bottom:14px;font-size:14px;color:#2d3748}
+  ul{margin:0 0 14px 22px;font-size:14px;color:#2d3748}
+  li{margin-bottom:6px}
+  .card{background:#fff;border-radius:14px;padding:32px 36px;box-shadow:0 4px 20px rgba(0,0,0,0.05)}
+  .highlight{background:#eff6ff;border-left:3px solid #1e6fff;padding:14px 16px;border-radius:8px;margin:18px 0;font-size:14px}
+  a{color:#1e6fff}
+  footer{margin-top:30px;font-size:12px;color:#a0aec0;text-align:center}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1 id="biz-title">Express Lock&Key — Terms of Service</h1>
+      <div class="updated">Last updated: <span id="updated-date"></span></div>
+
+      <p>These Terms of Service ("Terms") govern your use of services provided by <strong id="biz-name-1">Express Lock&Key</strong> ("we," "us," or "our"), including our SMS text messaging program. By requesting our services or opting in to SMS messages, you agree to these Terms.</p>
+
+      <h2>Our Services</h2>
+      <p>We provide locksmith and garage door services, including lockouts, lock changes, key services, and related work. Service availability, pricing, and scheduling are communicated directly with you at the time of your request.</p>
+
+      <h2>SMS Messaging Program</h2>
+      <p>By providing your mobile phone number and not opting out, you agree to receive SMS text messages from us related to:</p>
+      <ul>
+        <li>Appointment confirmations and reminders</li>
+        <li>Service and job status updates</li>
+        <li>Invoices and receipts</li>
+      </ul>
+      <div class="highlight">
+        <strong>Message frequency varies</strong> based on your service activity. <strong>Message and data rates may apply</strong> depending on your mobile carrier and plan. Reply <strong>STOP</strong> to any message to unsubscribe at any time. Reply <strong>JOIN</strong> when invited to subscribe.
+      </div>
+      <p>Carriers are not liable for delayed or undelivered messages. Participation in our SMS program is not a condition of purchasing any goods or services.</p>
+
+      <h2>Your Responsibilities</h2>
+      <p>You agree to provide accurate contact and service information, and to make your property reasonably accessible for scheduled service appointments.</p>
+
+      <h2>Payment</h2>
+      <p>Payment terms are communicated at the time of service. Invoices and receipts may be delivered via SMS or other means as agreed.</p>
+
+      <h2>Limitation of Liability</h2>
+      <p>To the fullest extent permitted by law, we are not liable for indirect, incidental, or consequential damages arising from the use of our services or SMS messaging program.</p>
+
+      <h2>Changes to These Terms</h2>
+      <p>We may update these Terms from time to time. Continued use of our services or SMS program after changes are posted constitutes acceptance of the updated Terms.</p>
+
+      <h2>Contact Us</h2>
+      <p>Questions about these Terms can be directed to us at:</p>
+      <p id="contact-info">Phone: <span id="biz-phone">—</span><br>Email: <span id="biz-email">—</span></p>
+
+      <p style="margin-top:24px">See also our <a href="/privacy">Privacy Policy</a>.</p>
+    </div>
+    <footer id="biz-name-2">Express Lock&Key</footer>
+  </div>
+
+<script>
+document.getElementById('updated-date').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+fetch('/api/config/business-info').then(r => r.json()).then(d => {
+  const name = d.name || 'Express Lock&Key';
+  document.getElementById('biz-title').textContent = name + ' — Terms of Service';
+  document.getElementById('biz-name-1').textContent = name;
+  document.getElementById('biz-name-2').textContent = name;
+  document.title = 'Terms of Service — ' + name;
+  if (d.phone) document.getElementById('biz-phone').textContent = d.phone;
+  if (d.email) document.getElementById('biz-email').textContent = d.email;
+}).catch(() => {});
+</script>
+</body>
+</html>
