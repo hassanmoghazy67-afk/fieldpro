@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMS Updates — Express Lock&Key</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1a202c;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:#fff;border-radius:16px;padding:32px;max-width:480px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.08)}
+  h1{font-size:20px;margin-bottom:6px}
+  .sub{color:#718096;font-size:13px;margin-bottom:24px}
+  .form-group{margin-bottom:16px}
+  label{display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:5px}
+  input{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none}
+  input:focus{border-color:#1e6fff}
+  .consent-box{background:#f0f4f8;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin:20px 0;font-size:12px;color:#4a5568;line-height:1.6}
+  .consent-box label{display:flex;align-items:flex-start;gap:9px;font-size:12px;font-weight:400;color:#4a5568;cursor:pointer}
+  .consent-box input[type=checkbox]{width:auto;margin-top:2px;flex-shrink:0}
+  button{width:100%;padding:12px;background:#1e6fff;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+  button:disabled{background:#cbd5e0;cursor:not-allowed}
+  button:hover:not(:disabled){background:#1558d6}
+  .success{display:none;text-align:center;padding:20px 0}
+  .success.show{display:block}
+  .legal{font-size:11px;color:#a0aec0;margin-top:18px;line-height:1.6}
+  .legal strong{color:#718096}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div id="form-view">
+      <h1>Get Job & Appointment Updates by Text</h1>
+      <div class="sub" id="biz-name">Express Lock&Key</div>
+
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="opt-name" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label>Mobile Phone Number</label>
+        <input type="tel" id="opt-phone" placeholder="+1 (555) 555-0123">
+      </div>
+
+      <div class="consent-box">
+        <label>
+          <input type="checkbox" id="opt-consent">
+          <span>I agree to receive SMS text messages from <strong id="biz-name-inline">Express Lock&Key</strong> about my service appointments, job updates, and receipts. Message frequency varies. Message and data rates may apply. Reply <strong>STOP</strong> to unsubscribe at any time, or reply <strong>HELP</strong> for assistance.</span>
+        </label>
+      </div>
+
+      <button id="submit-btn" disabled onclick="submitOptIn()">Sign Up for SMS Updates</button>
+
+      <div class="legal">
+        <strong>How this works:</strong> Submitting this form adds your number to our list to receive service-related texts only — never marketing or spam. You can opt out at any time by replying STOP to any message, or by contacting us directly. For help, reply HELP to any message or contact us using the information on our main website.<br><br>
+        By signing up, you agree to our <a href="/terms" target="_blank" style="color:#1e6fff">Terms of Service</a> and <a href="/privacy" target="_blank" style="color:#1e6fff">Privacy Policy</a>.
+      </div>
+    </div>
+
+    <div class="success" id="success-view">
+      <div style="font-size:40px;margin-bottom:10px">✅</div>
+      <h1>You're signed up!</h1>
+      <p class="sub" style="margin-top:8px">You'll now receive SMS updates about your jobs and appointments. Reply STOP at any time to unsubscribe.</p>
+    </div>
+  </div>
+
+<script>
+const consentCheckbox = document.getElementById('opt-consent');
+const submitBtn = document.getElementById('submit-btn');
+consentCheckbox.addEventListener('change', () => { submitBtn.disabled = !consentCheckbox.checked; });
+
+async function submitOptIn() {
+  const name = document.getElementById('opt-name').value.trim();
+  const phone = document.getElementById('opt-phone').value.trim();
+  if (!name || !phone) { alert('Please enter your name and phone number.'); return; }
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting...';
+  try {
+    const res = await fetch('/api/sms-optin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, consented: true })
+    });
+    if (!res.ok) throw new Error('Submission failed');
+    document.getElementById('form-view').style.display = 'none';
+    document.getElementById('success-view').classList.add('show');
+  } catch (e) {
+    alert('Something went wrong. Please try again or contact us directly.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Sign Up for SMS Updates';
+  }
+}
+
+// Pull the real business name from settings so this page never goes stale
+fetch('/api/config/business-info').then(r => r.json()).then(d => {
+  if (d.name) {
+    document.getElementById('biz-name').textContent = d.name;
+    document.getElementById('biz-name-inline').textContent = d.name;
+    document.title = 'SMS Updates — ' + d.name;
+  }
+}).catch(() => {});
+</script>
+</body>
+</html>
