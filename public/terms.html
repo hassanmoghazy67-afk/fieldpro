@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service — Express Lock&Key</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1a202c;line-height:1.7}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+  h1{font-size:26px;font-weight:700;margin-bottom:6px}
+  .updated{color:#718096;font-size:13px;margin-bottom:32px}
+  h2{font-size:18px;font-weight:600;margin:32px 0 10px;color:#1e6fff}
+  p{margin-bottom:14px;font-size:14px;color:#2d3748}
+  ul{margin:0 0 14px 22px;font-size:14px;color:#2d3748}
+  li{margin-bottom:6px}
+  .card{background:#fff;border-radius:14px;padding:36px;box-shadow:0 4px 20px rgba(0,0,0,0.05)}
+  .highlight{background:#eff6ff;border-left:4px solid #1e6fff;padding:16px 18px;border-radius:0 8px 8px 0;margin:18px 0;font-size:14px;color:#1e3a5f;line-height:1.6}
+  .highlight strong{color:#1e40af}
+  a{color:#1e6fff}
+  footer{margin-top:30px;font-size:12px;color:#a0aec0;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1 id="biz-title">Express Lock&amp;Key — Terms of Service</h1>
+    <div class="updated">Last updated: June 1, 2025</div>
+
+    <p>These Terms of Service ("Terms") govern your use of services provided by <strong id="biz-name-1">Express Lock&amp;Key</strong> ("we," "us," or "our"). By requesting our services, you agree to these Terms.</p>
+
+    <h2>Our Services</h2>
+    <p>We provide locksmith and garage door services, including lockouts, lock changes, key services, and related work. Service availability, pricing, and scheduling are communicated directly with you at the time of your request.</p>
+
+    <h2>SMS Messaging Program</h2>
+
+    <!-- CRITICAL FIX: removed "by providing phone number and not opting out" language -->
+    <!-- Old language was implicit/negative opt-out which violates CTIA & A2P 10DLC rules -->
+    <div class="highlight">
+      <strong>SMS participation is 100% voluntary and separate from service.</strong><br>
+      Providing your phone number for service scheduling or dispatch purposes does <strong>not</strong> automatically enroll you in our SMS messaging program. Participation in our SMS program requires your <strong>explicit, separate opt-in</strong> through our SMS sign-up page. Receiving SMS updates is never a condition of purchasing or receiving any service from us.
+    </div>
+
+    <p>If you have explicitly opted in to our SMS program, you agree to receive text messages related to:</p>
+    <ul>
+      <li>Appointment confirmations and reminders</li>
+      <li>Service and job status updates</li>
+      <li>Invoices and receipts</li>
+    </ul>
+
+    <div class="highlight">
+      <strong>Message frequency varies</strong> based on your service activity (typically 2–3 messages per service request).
+      <strong>Message and data rates may apply</strong> depending on your mobile carrier and plan.
+      Reply <strong>STOP</strong> to any message to unsubscribe at any time.
+      Reply <strong>HELP</strong> to any message for assistance.
+    </div>
+
+    <p>Carriers are not liable for delayed or undelivered messages. Your mobile opt-in data will not be shared with third parties or affiliates for marketing or promotional purposes.</p>
+
+    <h2>Your Responsibilities</h2>
+    <p>You agree to provide accurate contact and service information, and to make your property reasonably accessible for scheduled service appointments.</p>
+
+    <h2>Payment</h2>
+    <p>Payment terms are communicated at the time of service. Invoices and receipts may be delivered via SMS (if you have opted in) or other means as agreed.</p>
+
+    <h2>Limitation of Liability</h2>
+    <p>To the fullest extent permitted by law, we are not liable for indirect, incidental, or consequential damages arising from the use of our services or SMS messaging program.</p>
+
+    <h2>Changes to These Terms</h2>
+    <p>We may update these Terms from time to time. Continued use of our services after changes are posted constitutes acceptance of the updated Terms.</p>
+
+    <h2>Contact Us</h2>
+    <p>Questions about these Terms can be directed to us at:</p>
+    <p>
+      Phone: <span id="biz-phone">(856) 321-1172</span><br>
+      Email: <span id="biz-email">info@expresslockandkey.com</span>
+    </p>
+
+    <p style="margin-top:24px">See also our <a href="/privacy">Privacy Policy</a>.</p>
+  </div>
+  <footer id="biz-footer">Express Lock&amp;Key</footer>
+</div>
+
+<script>
+fetch('/api/config/business-info')
+  .then(r => r.json())
+  .then(d => {
+    const name = d.name || 'Express Lock&Key';
+    document.getElementById('biz-title').textContent = name + ' — Terms of Service';
+    document.getElementById('biz-name-1').textContent = name;
+    document.getElementById('biz-footer').textContent = name;
+    document.title = 'Terms of Service — ' + name;
+    if (d.phone) document.getElementById('biz-phone').textContent = d.phone;
+    if (d.email) document.getElementById('biz-email').textContent = d.email;
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>

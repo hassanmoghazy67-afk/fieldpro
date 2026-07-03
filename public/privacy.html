@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Express Lock&Key</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1a202c;line-height:1.7}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+  h1{font-size:26px;font-weight:700;margin-bottom:6px}
+  .updated{color:#718096;font-size:13px;margin-bottom:32px}
+  h2{font-size:18px;font-weight:600;margin:32px 0 10px;color:#1e6fff}
+  p{margin-bottom:14px;font-size:14px;color:#2d3748}
+  ul{margin:0 0 14px 22px;font-size:14px;color:#2d3748}
+  li{margin-bottom:6px}
+  .card{background:#fff;border-radius:14px;padding:36px;box-shadow:0 4px 20px rgba(0,0,0,0.05)}
+  .highlight{background:#eff6ff;border-left:4px solid #1e6fff;padding:16px 18px;border-radius:0 8px 8px 0;margin:18px 0;font-size:14px;color:#1e3a5f;line-height:1.6}
+  .highlight strong{color:#1e40af}
+  a{color:#1e6fff}
+  footer{margin-top:30px;font-size:12px;color:#a0aec0;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1 id="biz-title">Express Lock&amp;Key — Privacy Policy</h1>
+    <div class="updated">Last updated: June 1, 2025</div>
+
+    <p>This Privacy Policy explains how <strong id="biz-name-1">Express Lock&amp;Key</strong> ("we," "us," or "our") collects, uses, and protects your personal information, including information collected through our SMS text messaging program.</p>
+
+    <h2>Information We Collect</h2>
+    <p>When you contact us for service, book an appointment, or voluntarily sign up for SMS updates, we may collect:</p>
+    <ul>
+      <li>Your name, mobile phone number, and service address</li>
+      <li>Details about the service you have requested</li>
+      <li>Records of communications, including SMS messages you exchange with us</li>
+      <li>Your explicit opt-in consent record, including timestamp and IP address, when you sign up for SMS</li>
+    </ul>
+
+    <h2>How We Use Your Information</h2>
+    <p>We use your information to schedule and provide service, send appointment confirmations and updates, send invoices and receipts, and respond to your requests.</p>
+
+    <h2>SMS / Text Messaging Program</h2>
+
+    <!-- CRITICAL A2P COMPLIANCE BLOCK — must state explicit opt-in and no data sharing -->
+    <div class="highlight">
+      <strong>SMS Opt-In is Voluntary and Separate from Service.</strong><br>
+      Signing up to receive SMS messages from us is entirely optional and is never a condition of receiving our locksmith or garage door services. We only send SMS messages to customers who have explicitly and voluntarily opted in through our SMS sign-up page.
+    </div>
+
+    <p>If you voluntarily provide your mobile phone number and explicitly opt in to our SMS program, you may receive:</p>
+    <ul>
+      <li>Appointment confirmations and reminders</li>
+      <li>Job status updates</li>
+      <li>Invoice and receipt links</li>
+    </ul>
+    <ul>
+      <li>Message frequency varies based on your service activity (typically 2–3 messages per service request).</li>
+      <li>Message and data rates may apply depending on your mobile carrier and plan.</li>
+      <li>You can opt out at any time by replying <strong>STOP</strong> to any message from us.</li>
+      <li>Reply <strong>HELP</strong> to any message for assistance.</li>
+    </ul>
+
+    <div class="highlight">
+      <strong>No mobile information will be shared with third parties or affiliates for marketing or promotional purposes at any time.</strong>
+      Text messaging originator opt-in data and consent will not be shared with any third parties. Information may only be shared with our messaging platform provider (Twilio) solely for the purpose of delivering messages on our behalf.
+    </div>
+
+    <h2>How We Share Information</h2>
+    <p>We do not sell, rent, or share your personal information with third parties for marketing purposes. We may share information only with service providers who help us operate our business (such as our messaging platform provider), solely for the purpose of delivering our services to you.</p>
+
+    <h2>Data Retention</h2>
+    <p>We retain your information for as long as necessary to provide our services and maintain accurate business records, or as required by law. Opt-out requests are honored immediately and your number is removed from active messaging lists.</p>
+
+    <h2>Your Choices</h2>
+    <p>You may opt out of SMS communications at any time by replying <strong>STOP</strong> to any message. You may also contact us directly to request that we update, correct, or delete your information.</p>
+
+    <h2>Contact Us</h2>
+    <p>If you have questions about this Privacy Policy or how your information is handled, contact us:</p>
+    <p>
+      Phone: <span id="biz-phone">(856) 321-1172</span><br>
+      Email: <span id="biz-email">info@expresslockandkey.com</span>
+    </p>
+
+    <h2>Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated revision date.</p>
+
+    <p style="margin-top:24px">See also our <a href="/terms">Terms of Service</a>.</p>
+  </div>
+  <footer id="biz-footer">Express Lock&amp;Key</footer>
+</div>
+
+<script>
+fetch('/api/config/business-info')
+  .then(r => r.json())
+  .then(d => {
+    const name = d.name || 'Express Lock&Key';
+    document.getElementById('biz-title').textContent = name + ' — Privacy Policy';
+    document.getElementById('biz-name-1').textContent = name;
+    document.getElementById('biz-footer').textContent = name;
+    document.title = 'Privacy Policy — ' + name;
+    if (d.phone) document.getElementById('biz-phone').textContent = d.phone;
+    if (d.email) document.getElementById('biz-email').textContent = d.email;
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>
