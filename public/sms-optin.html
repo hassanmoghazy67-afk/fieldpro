@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMS Updates — Express Lock&Key</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1a202c;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:#fff;border-radius:16px;padding:36px 32px;max-width:500px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.08)}
+  .logo-row{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+  .logo-icon{width:40px;height:40px;background:#1e6fff;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;flex-shrink:0}
+  .biz-name{font-size:15px;font-weight:700;color:#1a202c}
+  h1{font-size:22px;font-weight:700;margin-bottom:6px;color:#1a202c}
+  .sub{color:#718096;font-size:13px;margin-bottom:22px;line-height:1.5}
+
+  /* "This is optional" banner — must be prominent and first */
+  .optional-notice{background:#ecfdf5;border:1.5px solid #6ee7b7;border-radius:10px;padding:13px 15px;margin-bottom:22px;font-size:13px;color:#065f46;line-height:1.5;font-weight:500}
+  .optional-notice strong{color:#047857}
+
+  /* What you'll receive bullets */
+  .benefits{margin-bottom:22px}
+  .benefits p{font-size:12px;font-weight:600;color:#4a5568;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em}
+  .benefit-item{display:flex;align-items:center;gap:9px;font-size:13px;color:#2d3748;margin-bottom:6px}
+  .benefit-item span.dot{width:7px;height:7px;background:#1e6fff;border-radius:50%;flex-shrink:0}
+
+  /* Consent checkbox block */
+  .consent-block{background:#f7fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:20px}
+  .consent-label{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:#2d3748;line-height:1.6}
+  .consent-label input[type=checkbox]{width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:#1e6fff;cursor:pointer}
+  .consent-note{font-size:11px;color:#718096;margin-top:9px;line-height:1.5;padding-left:28px}
+
+  /* Fields — hidden until consent is checked */
+  .fields-wrap{display:none}
+  .fields-wrap.show{display:block}
+  .form-group{margin-bottom:14px}
+  .field-label{display:block;font-size:12px;font-weight:600;color:#4a5568;margin-bottom:5px}
+  input[type=text],input[type=tel]{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;color:#1a202c;outline:none;transition:border-color .15s}
+  input:focus{border-color:#1e6fff;box-shadow:0 0 0 3px rgba(30,111,255,.1)}
+  .submit-btn{width:100%;padding:13px;background:#1e6fff;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;letter-spacing:0.02em;transition:background .15s}
+  .submit-btn:disabled{background:#cbd5e0;cursor:not-allowed}
+  .submit-btn:hover:not(:disabled){background:#1558d6}
+
+  /* No thanks link */
+  .skip-row{text-align:center;margin-top:16px}
+  .skip-link{font-size:12px;color:#a0aec0;text-decoration:none;border-bottom:1px dotted #a0aec0}
+  .skip-link:hover{color:#718096}
+
+  /* Legal footer */
+  .legal{font-size:11px;color:#a0aec0;margin-top:20px;line-height:1.7;border-top:1px solid #edf2f7;padding-top:16px}
+  .legal a{color:#718096;text-decoration:none}
+  .legal a:hover{text-decoration:underline}
+
+  /* Success screen */
+  .success{display:none;text-align:center;padding:16px 0}
+  .success.show{display:block}
+  .success-icon{font-size:48px;margin-bottom:12px}
+  .success h2{font-size:22px;font-weight:700;margin-bottom:8px}
+  .success p{font-size:14px;color:#718096;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Form view -->
+  <div id="form-view">
+    <div class="logo-row">
+      <div class="logo-icon">🔐</div>
+      <div class="biz-name" id="biz-name">Express Lock&amp;Key</div>
+    </div>
+
+    <h1>Get SMS Service Updates</h1>
+    <p class="sub">Receive text updates about your appointments and job status — entirely at your option.</p>
+
+    <!-- REQUIRED: Prominent voluntary notice BEFORE any consent action -->
+    <div class="optional-notice">
+      <strong>100% Optional.</strong> Signing up for text messages is <strong>not required</strong> to receive locksmith or garage door service from us. We offer this as a convenience only. You can skip this page entirely and still receive full service. We send transactional and informational messages only — never marketing or promotional messages.
+    </div>
+
+    <!-- What you'll receive -->
+    <div class="benefits">
+      <p>If you sign up, you'll receive:</p>
+      <div class="benefit-item"><span class="dot"></span>Appointment confirmations &amp; reminders</div>
+      <div class="benefit-item"><span class="dot"></span>Job status updates from your technician</div>
+      <div class="benefit-item"><span class="dot"></span>Invoice and receipt links</div>
+    </div>
+
+    <!-- CONSENT CHECKBOX — unchecked by default, no "required" attribute -->
+    <div class="consent-block">
+      <label class="consent-label">
+        <input type="checkbox" id="consent-cb" onchange="handleConsent()">
+        <span>
+          I voluntarily agree to receive SMS text messages from
+          <strong id="biz-name-inline">Express Lock&amp;Key</strong>
+          about my service appointments, job status updates, and receipts.
+          <strong>This is not a condition of service.</strong>
+          Message frequency varies (typically 2–3 per service request).
+          Message &amp; data rates may apply.
+          Reply <strong>STOP</strong> to unsubscribe at any time.
+          Reply <strong>HELP</strong> for assistance.
+        </span>
+      </label>
+      <div class="consent-note">
+        Your mobile number will never be shared with third parties or affiliates for marketing purposes.
+        See our <a href="/privacy" target="_blank" style="color:#1e6fff;text-decoration:none">Privacy Policy</a>.
+      </div>
+    </div>
+
+    <!-- Name + phone — only revealed after explicit consent checkbox is checked -->
+    <div class="fields-wrap" id="fields-wrap">
+      <div class="form-group">
+        <label class="field-label" for="inp-name">Your Full Name</label>
+        <input type="text" id="inp-name" placeholder="Jane Smith" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="field-label" for="inp-phone">Mobile Phone Number</label>
+        <input type="tel" id="inp-phone" placeholder="+1 (555) 555-0123" autocomplete="tel">
+      </div>
+      <button class="submit-btn" id="submit-btn" onclick="submitOptIn()">Sign me up for SMS updates</button>
+    </div>
+
+    <!-- Skip option — always visible, makes clear this is truly optional -->
+    <div class="skip-row">
+      <a href="javascript:void(0)" class="skip-link" onclick="showSkipped()">No thanks, I don't want SMS updates</a>
+    </div>
+
+    <div class="legal">
+      Reply <strong>STOP</strong> to any message to unsubscribe. Reply <strong>HELP</strong> for help.
+      Carriers are not liable for delayed or undelivered messages.<br><br>
+      <a href="/terms" target="_blank">Terms of Service</a> &nbsp;·&nbsp; <a href="/privacy" target="_blank">Privacy Policy</a>
+    </div>
+  </div>
+
+  <!-- Success screen -->
+  <div class="success" id="success-view">
+    <div class="success-icon">✅</div>
+    <h2>You're signed up!</h2>
+    <p>You'll receive SMS updates about your service appointments and job status.<br><br>Reply <strong>STOP</strong> at any time to unsubscribe.</p>
+  </div>
+
+  <!-- Skip confirmation screen -->
+  <div class="success" id="skip-view">
+    <div class="success-icon">👍</div>
+    <h2>No problem!</h2>
+    <p>You've chosen not to receive SMS updates. You'll still receive full service from us — no change at all.</p>
+  </div>
+
+</div>
+
+<script>
+function handleConsent() {
+  const checked = document.getElementById('consent-cb').checked;
+  document.getElementById('fields-wrap').classList.toggle('show', checked);
+}
+
+function showSkipped() {
+  document.getElementById('form-view').style.display = 'none';
+  document.getElementById('skip-view').classList.add('show');
+}
+
+async function submitOptIn() {
+  const name = document.getElementById('inp-name').value.trim();
+  const phone = document.getElementById('inp-phone').value.trim();
+  if (!name) { alert('Please enter your full name.'); return; }
+  if (!phone) { alert('Please enter your mobile phone number.'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  try {
+    const res = await fetch('/api/sms-optin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, consented: true })
+    });
+    if (!res.ok) throw new Error('Submission failed');
+    document.getElementById('form-view').style.display = 'none';
+    document.getElementById('success-view').classList.add('show');
+  } catch (e) {
+    alert('Something went wrong. Please try again or contact us directly.');
+    btn.disabled = false;
+    btn.textContent = 'Sign me up for SMS updates';
+  }
+}
+
+// Load business name — fallback is already hardcoded in HTML so this is enhancement only
+fetch('/api/config/business-info')
+  .then(r => r.json())
+  .then(d => {
+    if (d.name) {
+      document.getElementById('biz-name').textContent = d.name;
+      document.getElementById('biz-name-inline').textContent = d.name;
+      document.title = 'SMS Updates — ' + d.name;
+    }
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>
