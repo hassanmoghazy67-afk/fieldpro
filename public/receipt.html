@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Receipt</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+  .receipt{background:#fff;border-radius:16px;width:100%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,0.08);overflow:hidden}
+  .receipt-header{background:linear-gradient(135deg,#0f1923,#1a2940);color:#fff;padding:28px 24px;text-align:center}
+  .biz-name{font-size:20px;font-weight:800;letter-spacing:-0.3px}
+  .biz-contact{font-size:11px;color:#8a9bb0;margin-top:6px}
+  .check-icon{width:48px;height:48px;border-radius:50%;background:rgba(34,197,94,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+  .receipt-body{padding:28px 24px}
+  .receipt-label{font-size:11px;color:#718096;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+  .receipt-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #edf2f7}
+  .receipt-row:last-child{border-bottom:none}
+  .receipt-row-label{font-size:13px;color:#4a5568}
+  .receipt-row-value{font-size:13px;font-weight:600;color:#1a202c}
+  .total-row{background:#f0f4f8;border-radius:10px;padding:16px;margin-top:16px;display:flex;justify-content:space-between;align-items:center}
+  .total-label{font-size:13px;font-weight:600;color:#1a202c}
+  .total-value{font-size:24px;font-weight:800;color:#1e6fff}
+  .status-pill{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;margin-top:6px}
+  .status-paid{background:#dcfce7;color:#166534}
+  .status-unpaid{background:#fef3c7;color:#92400e}
+  .review-cta{margin-top:20px;text-align:center}
+  .review-btn{display:inline-block;background:#1e6fff;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:13px;font-weight:600}
+  .review-btn:hover{background:#1558d6}
+  .footer-note{text-align:center;font-size:11px;color:#a0aec0;margin-top:20px;padding-top:16px;border-top:1px solid #edf2f7}
+  .loading,.error{text-align:center;padding:60px 20px;color:#718096;font-size:13px}
+  .invoice-id{font-size:11px;color:#a0aec0;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="receipt" id="receipt-root">
+  <div class="loading">Loading your receipt...</div>
+</div>
+
+<script>
+async function loadReceipt() {
+  const token = window.location.pathname.split('/receipt/')[1];
+  const root = document.getElementById('receipt-root');
+  try {
+    const res = await fetch('/api/receipt/' + token);
+    const data = await res.json();
+    if (!res.ok) { root.innerHTML = '<div class="error">Receipt not found. Please check the link or contact us.</div>'; return; }
+
+    const breakdownHTML = (data.breakdown && data.breakdown.length)
+      ? data.breakdown.map(b => `<div class="receipt-row"><span class="receipt-row-label">${escapeHTML(b.label)}</span><span class="receipt-row-value">$${parseFloat(b.amount).toFixed(2)}</span></div>`).join('')
+      : '';
+
+    root.innerHTML = `
+      <div class="receipt-header">
+        <div class="check-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="biz-name">${escapeHTML(data.business_name)}</div>
+        <div class="biz-contact">${[data.business_phone, data.business_email].filter(Boolean).map(escapeHTML).join(' · ')}</div>
+      </div>
+      <div class="receipt-body">
+        <div class="receipt-row"><span class="receipt-row-label">Customer</span><span class="receipt-row-value">${escapeHTML(data.customer_name || '—')}</span></div>
+        ${data.service ? `<div class="receipt-row"><span class="receipt-row-label">Service</span><span class="receipt-row-value">${escapeHTML(data.service)}</span></div>` : ''}
+        ${data.address ? `<div class="receipt-row"><span class="receipt-row-label">Address</span><span class="receipt-row-value">${escapeHTML(data.address)}</span></div>` : ''}
+        <div class="receipt-row"><span class="receipt-row-label">Date</span><span class="receipt-row-value">${data.invoice_date || ''}</span></div>
+        ${breakdownHTML}
+        <div class="total-row">
+          <div>
+            <div class="total-label">Total ${data.breakdown ? '(breakdown above)' : 'Paid'}</div>
+            <span class="status-pill ${data.status === 'paid' ? 'status-paid' : 'status-unpaid'}">${data.status === 'paid' ? 'PAID' : 'UNPAID'}</span>
+          </div>
+          <div class="total-value">$${parseFloat(data.total).toFixed(2)}</div>
+        </div>
+        ${data.review_link ? `<div class="review-cta"><a class="review-btn" href="${escapeAttr(data.review_link)}" target="_blank" rel="noopener">⭐ Leave us a review</a></div>` : ''}
+        <div class="invoice-id">Receipt ${escapeHTML(data.invoice_id)}</div>
+        <div class="footer-note">Thank you for choosing ${escapeHTML(data.business_name)}!</div>
+      </div>`;
+  } catch(e) {
+    root.innerHTML = '<div class="error">Something went wrong loading this receipt.</div>';
+  }
+}
+function escapeHTML(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+function escapeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+loadReceipt();
+</script>
+</body>
+</html>
