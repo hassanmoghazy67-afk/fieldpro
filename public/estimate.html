@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Estimate</title>
+<style>
+  :root{
+    --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f3f4f6;
+    --brand:#1d4ed8; --ok:#059669; --no:#b91c1c; --paper:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:24px 14px}
+  .doc{max-width:760px;margin:0 auto;background:var(--paper);border-radius:14px;
+    box-shadow:0 2px 18px rgba(0,0,0,.08);overflow:hidden}
+
+  .head{padding:26px 30px;border-bottom:3px solid var(--brand);
+    display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .biz{font-size:21px;font-weight:800;letter-spacing:-.3px}
+  .biz-line{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .doc-meta{text-align:right;min-width:170px}
+  .doc-kind{font-size:13px;font-weight:800;letter-spacing:1.6px;color:var(--brand);text-transform:uppercase}
+  .doc-no{font-size:19px;font-weight:800;margin-top:2px}
+  .doc-date{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+  .badge{display:inline-block;padding:3px 11px;border-radius:999px;
+    font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-top:8px}
+  .b-draft{background:#f3f4f6;color:#4b5563}
+  .b-sent{background:#dbeafe;color:#1e40af}
+  .b-accepted{background:#d1fae5;color:#065f46}
+  .b-declined{background:#fee2e2;color:#991b1b}
+  .b-expired{background:#fef3c7;color:#92400e}
+
+  .to{padding:20px 30px;border-bottom:1px solid var(--line);display:flex;gap:34px;flex-wrap:wrap}
+  .lbl{font-size:10.5px;font-weight:800;letter-spacing:1.1px;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
+  .val{font-size:14.5px;font-weight:600}
+
+  table{width:100%;border-collapse:collapse}
+  th{font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);
+    text-align:left;padding:13px 30px;border-bottom:1px solid var(--line);font-weight:800}
+  td{padding:13px 30px;border-bottom:1px solid var(--line);font-size:14.5px;vertical-align:top}
+  .num{text-align:right;white-space:nowrap}
+  .desc-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+  .totals{padding:16px 30px;display:flex;justify-content:flex-end}
+  .totals table{width:auto;min-width:270px}
+  .totals td{border:none;padding:5px 0;font-size:14px}
+  .totals td.num{padding-left:34px;font-variant-numeric:tabular-nums}
+  .grand td{border-top:2px solid var(--ink);padding-top:11px;font-size:19px;font-weight:800}
+
+  .notes{padding:18px 30px;border-top:1px solid var(--line);font-size:13.5px;white-space:pre-wrap}
+  .terms{padding:16px 30px;background:#fafafa;border-top:1px solid var(--line);
+    font-size:11.5px;color:var(--muted);white-space:pre-wrap}
+
+  .actions{padding:22px 30px;border-top:1px solid var(--line);text-align:center}
+  .actions p{margin:0 0 13px;font-size:14px;font-weight:600}
+  .btn{border:0;border-radius:10px;padding:13px 26px;font-size:15px;font-weight:700;
+    cursor:pointer;margin:5px;min-width:172px}
+  .btn-ok{background:var(--ok);color:#fff}
+  .btn-no{background:#fff;color:var(--no);border:1.5px solid var(--no)}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  .result{padding:22px 30px;text-align:center;font-size:15px;font-weight:700;border-top:1px solid var(--line)}
+  .foot{padding:18px 30px;text-align:center;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+  .foot a{color:var(--brand);text-decoration:none;font-weight:600}
+  .state{max-width:760px;margin:60px auto;text-align:center;color:var(--muted);font-size:15px}
+
+  @media print{
+    body{background:#fff;padding:0}
+    .doc{box-shadow:none;border-radius:0;max-width:none}
+    .actions,.no-print{display:none!important}
+  }
+  @media(max-width:560px){
+    body{padding:12px 8px}
+    .head,.to,.totals,.notes,.terms,.actions,.foot{padding-left:18px;padding-right:18px}
+    th,td{padding-left:18px;padding-right:18px}
+    .doc-meta{text-align:left}
+    .btn{width:100%;margin:5px 0}
+  }
+</style>
+</head>
+<body>
+<div id="root"><div class="state">Loading estimate…</div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const money = n => {
+  const v = parseFloat(n);
+  return isFinite(v) ? v.toLocaleString('en-US',{style:'currency',currency:'USD'}) : '$0.00';
+};
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Dates arrive as plain date strings; parse as UTC so they don't shift a day
+// backwards for viewers west of the meridian.
+const shortDate = s => {
+  if (!s) return '';
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? s + 'T00:00:00Z' : s);
+  return isNaN(d) ? '' : d.toLocaleDateString('en-US',
+    { month:'short', day:'numeric', year:'numeric', timeZone:'UTC' });
+};
+
+const token = location.pathname.split('/').pop();
+let est = null;
+
+async function load() {
+  try {
+    const r = await fetch('/api/estimate/' + encodeURIComponent(token));
+    if (!r.ok) throw new Error('not found');
+    est = await r.json();
+    render();
+  } catch (e) {
+    $('root').innerHTML =
+      '<div class="state">This estimate link is not valid or has been removed.<br>' +
+      'Please contact us if you believe this is a mistake.</div>';
+  }
+}
+
+function render() {
+  const items = Array.isArray(est.line_items) ? est.line_items : [];
+  const rows = items.length ? items.map(li => {
+    const qty = parseFloat(li.qty) || 0;
+    const price = parseFloat(li.unit_price) || 0;
+    return `<tr>
+      <td>${esc(li.description || '')}
+        ${li.kind ? `<div class="desc-sub">${li.kind === 'part' ? 'Part / material' : 'Labor'}</div>` : ''}</td>
+      <td class="num">${qty}</td>
+      <td class="num">${money(price)}</td>
+      <td class="num"><strong>${money(qty * price)}</strong></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="4" style="color:var(--muted)">No items listed.</td></tr>`;
+
+  const expired = est.valid_until && new Date(est.valid_until + 'T23:59:59Z') < new Date();
+  const shown = expired && est.status === 'sent' ? 'expired' : est.status;
+  const decided = shown === 'accepted' || shown === 'declined';
+
+  const bizLines = [
+    est.business_address,
+    est.business_city_state_zip,
+    est.business_phone,
+    est.business_email,
+    est.business_website,
+    est.business_license ? 'Lic. ' + est.business_license : ''
+  ].filter(Boolean);
+
+  $('root').innerHTML = `
+  <div class="doc">
+    <div class="head">
+      <div>
+        <div class="biz">${esc(est.business_name)}</div>
+        ${bizLines.map(l => `<div class="biz-line">${esc(l)}</div>`).join('')}
+      </div>
+      <div class="doc-meta">
+        <div class="doc-kind">Estimate</div>
+        <div class="doc-no">${esc(est.id)}</div>
+        <div class="doc-date">${shortDate(est.created_at)}</div>
+        ${est.valid_until ? `<div class="doc-date">Valid until ${shortDate(est.valid_until)}</div>` : ''}
+        <span class="badge b-${esc(shown)}">${esc(shown)}</span>
+      </div>
+    </div>
+
+    <div class="to">
+      <div><div class="lbl">Prepared for</div>
+        <div class="val">${esc(est.customer_name || '—')}</div></div>
+      ${est.address ? `<div><div class="lbl">Service address</div>
+        <div class="val">${esc(est.address)}</div></div>` : ''}
+      ${est.job_type ? `<div><div class="lbl">Service</div>
+        <div class="val">${esc(est.job_type)}</div></div>` : ''}
+    </div>
+
+    <table>
+      <thead><tr>
+        <th>Description</th><th class="num">Qty</th>
+        <th class="num">Rate</th><th class="num">Amount</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="totals"><table>
+      <tr><td>Subtotal</td><td class="num">${money(est.subtotal)}</td></tr>
+      ${parseFloat(est.discount) > 0
+        ? `<tr><td>Discount</td><td class="num">-${money(est.discount)}</td></tr>` : ''}
+      ${parseFloat(est.tax_amount) > 0
+        ? `<tr><td>Tax (${est.tax_rate}%)</td><td class="num">${money(est.tax_amount)}</td></tr>` : ''}
+      <tr class="grand"><td>Total</td><td class="num">${money(est.total)}</td></tr>
+    </table></div>
+
+    ${est.notes ? `<div class="notes"><div class="lbl">Notes</div>${esc(est.notes)}</div>` : ''}
+
+    ${decided ? `<div class="result" style="color:${shown === 'accepted' ? 'var(--ok)' : 'var(--no)'}">
+        ${shown === 'accepted'
+          ? '&#10003; You approved this estimate. We will be in touch to schedule.'
+          : 'This estimate was declined.'}
+      </div>`
+    : shown === 'expired' ? `<div class="result" style="color:#92400e">
+        This estimate has expired. Contact us and we'll be glad to send an updated one.
+      </div>`
+    : `<div class="actions" id="actions">
+        <p>Would you like to go ahead with this work?</p>
+        <button class="btn btn-ok" onclick="respond('accepted')">Approve this estimate</button>
+        <button class="btn btn-no" onclick="respond('declined')">Decline</button>
+      </div>`}
+
+    ${est.terms ? `<div class="terms">${esc(est.terms)}</div>` : ''}
+
+    <div class="foot">
+      Questions? ${est.business_phone
+        ? `Call <a href="tel:${esc(est.business_phone)}">${esc(est.business_phone)}</a>`
+        : 'Contact us'} · ${esc(est.business_name)}
+      <div class="no-print" style="margin-top:9px">
+        <a href="#" onclick="window.print();return false">Print / Save as PDF</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function respond(decision) {
+  const box = $('actions');
+  if (box) box.querySelectorAll('button').forEach(b => b.disabled = true);
+  try {
+    const r = await fetch('/api/estimate/' + encodeURIComponent(token) + '/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision })
+    });
+    if (!r.ok) throw new Error('failed');
+    const out = await r.json();
+    est.status = out.status || decision;
+    render();
+  } catch (e) {
+    if (box) {
+      box.querySelectorAll('button').forEach(b => b.disabled = false);
+      box.insertAdjacentHTML('beforeend',
+        '<div style="color:var(--no);font-size:13px;margin-top:10px">' +
+        'Something went wrong — please try again, or call us.</div>');
+    }
+  }
+}
+
+load();
+</script>
+</body>
+</html>
