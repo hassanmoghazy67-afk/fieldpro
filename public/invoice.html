@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Invoice</title>
+<style>
+  :root{
+    --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f3f4f6;
+    --brand:#1d4ed8; --ok:#059669; --no:#b91c1c; --paper:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:24px 14px}
+  .doc{max-width:760px;margin:0 auto;background:var(--paper);border-radius:14px;
+    box-shadow:0 2px 18px rgba(0,0,0,.08);overflow:hidden}
+
+  .head{padding:26px 30px;border-bottom:3px solid var(--brand);
+    display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .biz{font-size:21px;font-weight:800;letter-spacing:-.3px}
+  .biz-line{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .doc-meta{text-align:right;min-width:170px}
+  .doc-kind{font-size:13px;font-weight:800;letter-spacing:1.6px;color:var(--brand);text-transform:uppercase}
+  .doc-no{font-size:19px;font-weight:800;margin-top:2px}
+  .doc-date{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+  .badge{display:inline-block;padding:3px 11px;border-radius:999px;
+    font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-top:8px}
+  .b-draft{background:#f3f4f6;color:#4b5563}
+  .b-sent{background:#dbeafe;color:#1e40af}
+  .b-paid{background:#d1fae5;color:#065f46}
+  .b-unpaid{background:#dbeafe;color:#1e40af}
+  .b-overdue{background:#fee2e2;color:#991b1b}
+
+  .to{padding:20px 30px;border-bottom:1px solid var(--line);display:flex;gap:34px;flex-wrap:wrap}
+  .lbl{font-size:10.5px;font-weight:800;letter-spacing:1.1px;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
+  .val{font-size:14.5px;font-weight:600}
+
+  table{width:100%;border-collapse:collapse}
+  th{font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);
+    text-align:left;padding:13px 30px;border-bottom:1px solid var(--line);font-weight:800}
+  td{padding:13px 30px;border-bottom:1px solid var(--line);font-size:14.5px;vertical-align:top}
+  .num{text-align:right;white-space:nowrap}
+  .desc-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+  .totals{padding:16px 30px;display:flex;justify-content:flex-end}
+  .totals table{width:auto;min-width:270px}
+  .totals td{border:none;padding:5px 0;font-size:14px}
+  .totals td.num{padding-left:34px;font-variant-numeric:tabular-nums}
+  .grand td{border-top:2px solid var(--ink);padding-top:11px;font-size:19px;font-weight:800}
+
+  .notes{padding:18px 30px;border-top:1px solid var(--line);font-size:13.5px;white-space:pre-wrap}
+  .terms{padding:16px 30px;background:#fafafa;border-top:1px solid var(--line);
+    font-size:11.5px;color:var(--muted);white-space:pre-wrap}
+
+  .actions{padding:22px 30px;border-top:1px solid var(--line);text-align:center}
+  .actions p{margin:0 0 13px;font-size:14px;font-weight:600}
+  .btn{border:0;border-radius:10px;padding:13px 26px;font-size:15px;font-weight:700;
+    cursor:pointer;margin:5px;min-width:172px}
+  .btn-ok{background:var(--ok);color:#fff}
+  .btn-no{background:#fff;color:var(--no);border:1.5px solid var(--no)}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  .result{padding:22px 30px;text-align:center;font-size:15px;font-weight:700;border-top:1px solid var(--line)}
+  .foot{padding:18px 30px;text-align:center;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+  .foot a{color:var(--brand);text-decoration:none;font-weight:600}
+  .state{max-width:760px;margin:60px auto;text-align:center;color:var(--muted);font-size:15px}
+
+  @media print{
+    body{background:#fff;padding:0}
+    .doc{box-shadow:none;border-radius:0;max-width:none}
+    .actions,.no-print{display:none!important}
+  }
+  @media(max-width:560px){
+    body{padding:12px 8px}
+    .head,.to,.totals,.notes,.terms,.actions,.foot{padding-left:18px;padding-right:18px}
+    th,td{padding-left:18px;padding-right:18px}
+    .doc-meta{text-align:left}
+    .btn{width:100%;margin:5px 0}
+  }
+</style>
+</head>
+<body>
+<div id="root"><div class="state">Loading estimate…</div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const money = n => {
+  const v = parseFloat(n);
+  return isFinite(v) ? v.toLocaleString('en-US',{style:'currency',currency:'USD'}) : '$0.00';
+};
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Dates arrive as plain date strings; parse as UTC so they don't shift a day
+// backwards for viewers west of the meridian.
+const shortDate = s => {
+  if (!s) return '';
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? s + 'T00:00:00Z' : s);
+  return isNaN(d) ? '' : d.toLocaleDateString('en-US',
+    { month:'short', day:'numeric', year:'numeric', timeZone:'UTC' });
+};
+
+const token = location.pathname.split('/').pop();
+let est = null;
+
+async function load() {
+  try {
+    const r = await fetch('/api/invoice/' + encodeURIComponent(token));
+    if (!r.ok) throw new Error('not found');
+    est = await r.json();
+    render();
+  } catch (e) {
+    $('root').innerHTML =
+      '<div class="state">This estimate link is not valid or has been removed.<br>' +
+      'Please contact us if you believe this is a mistake.</div>';
+  }
+}
+
+function render() {
+  const items = Array.isArray(est.line_items) ? est.line_items : [];
+  const rows = items.length ? items.map(li => {
+    const qty = parseFloat(li.qty) || 0;
+    const price = parseFloat(li.unit_price) || 0;
+    return `<tr>
+      <td>${esc(li.description || '')}
+        ${li.kind ? `<div class="desc-sub">${li.kind === 'part' ? 'Part / material' : 'Labor'}</div>` : ''}</td>
+      <td class="num">${qty}</td>
+      <td class="num">${money(price)}</td>
+      <td class="num"><strong>${money(qty * price)}</strong></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="4" style="color:var(--muted)">No items listed.</td></tr>`;
+
+  // An invoice is paid or it isn't. "Overdue" is unpaid past the due date.
+  const overdue = est.status !== 'paid' && est.due_date && new Date(est.due_date + 'T23:59:59Z') < new Date();
+  const shown = est.status === 'paid' ? 'paid' : (overdue ? 'overdue' : 'unpaid');
+
+  const bizLines = [
+    est.business_address,
+    est.business_city_state_zip,
+    est.business_address_2,
+    est.business_city_state_zip_2,
+    est.business_phone,
+    est.business_email,
+    est.business_email_2,
+    est.business_website,
+    est.business_license ? 'Lic. ' + est.business_license : ''
+  ].filter(Boolean);
+
+  $('root').innerHTML = `
+  <div class="doc">
+    <div class="head">
+      <div>
+        <div class="biz">${esc(est.business_name)}</div>
+        ${bizLines.map(l => `<div class="biz-line">${esc(l)}</div>`).join('')}
+      </div>
+      <div class="doc-meta">
+        <div class="doc-kind">Invoice</div>
+        <div class="doc-no">${esc(est.id)}</div>
+        <div class="doc-date">${shortDate(est.invoice_date)}</div>
+        ${est.due_date ? `<div class="doc-date">Due ${shortDate(est.due_date)}</div>` : ''}
+        ${est.job_id ? `<div class="doc-date">Job ${esc(est.job_id)}</div>` : ''}
+        <span class="badge b-${esc(shown)}">${esc(shown)}</span>
+      </div>
+    </div>
+
+    <div class="to">
+      <div><div class="lbl">Billed to</div>
+        <div class="val">${esc(est.customer_name || '—')}</div></div>
+      ${est.address ? `<div><div class="lbl">Service address</div>
+        <div class="val">${esc(est.address)}</div></div>` : ''}
+      ${est.job_type ? `<div><div class="lbl">Service</div>
+        <div class="val">${esc(est.job_type)}</div></div>` : ''}
+    </div>
+
+    <table>
+      <thead><tr>
+        <th>Description</th><th class="num">Qty</th>
+        <th class="num">Rate</th><th class="num">Amount</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="totals"><table>
+      <tr><td>Subtotal</td><td class="num">${money(est.subtotal)}</td></tr>
+      ${parseFloat(est.discount) > 0
+        ? `<tr><td>Discount</td><td class="num">-${money(est.discount)}</td></tr>` : ''}
+      ${parseFloat(est.tax_amount) > 0
+        ? `<tr><td>Tax (${est.tax_rate}%)</td><td class="num">${money(est.tax_amount)}</td></tr>` : ''}
+      <tr class="grand"><td>Total</td><td class="num">${money(est.total)}</td></tr>
+    </table></div>
+
+    ${est.notes ? `<div class="notes"><div class="lbl">Notes</div>${esc(est.notes)}</div>` : ''}
+
+    ${shown === 'paid'
+      ? `<div class="result" style="color:var(--ok)">&#10003; Paid in full &mdash; thank you.</div>`
+      : `<div class="result" style="color:${overdue ? 'var(--no)' : 'var(--ink)'}">
+          ${overdue ? 'This invoice is past due.' : 'Balance due'}
+          <div style="font-size:26px;font-weight:800;margin-top:6px">${money(est.total)}</div>
+          ${est.business_phone ? `<div style="font-size:13px;font-weight:400;color:var(--muted);margin-top:8px">To pay or ask a question, call <a href="tel:${esc(est.business_phone)}" style="color:var(--brand);text-decoration:none;font-weight:600">${esc(est.business_phone)}</a></div>` : ''}
+        </div>`}
+
+    ${est.terms ? `<div class="terms">${esc(est.terms)}</div>` : ''}
+
+    <div class="foot">
+      Questions? ${est.business_phone
+        ? `Call <a href="tel:${esc(est.business_phone)}">${esc(est.business_phone)}</a>`
+        : 'Contact us'} · ${esc(est.business_name)}
+      <div class="no-print" style="margin-top:9px">
+        <a href="#" onclick="window.print();return false">Print / Save as PDF</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+load();
+
+</script>
+</body>
+</html>
